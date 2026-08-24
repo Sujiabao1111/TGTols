@@ -1,0 +1,13 @@
+{
+    "localURL": "127.0.0.1",
+    "port": 3557,
+    "dbDsn": "root:guesswhat@tcp(127.0.0.1:3306)/star?charset=utf8mb4&parseTime=True&loc=Local",
+    "poolIdle": 10,
+    "poolMax": 100,
+    "jwt": "abcedfghijk",
+    "redisNode": "127.0.0.1:6379",
+    "redisDb": 0,
+    "agentid": "6959d07b2d4838a607cde1c2",
+    "prefix": "hddfw",
+    "agentapi": "https://api.nexapi.xyz/"
+}

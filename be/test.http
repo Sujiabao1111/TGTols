@@ -1,0 +1,53 @@
+### TokenPay 测试请求
+
+### 1. 获取 TokenPay 配置
+GET http://localhost:3555/test/tokenpay/config
+
+### 2. 测试创建订单（直接测试 TokenPay 接口）
+### 默认 USDT_TRC20
+GET http://localhost:3555/test/tokenpay/create
+
+### 测试 EVM_ETH_USDT_ERC20
+GET http://localhost:3555/test/tokenpay/create?currency=EVM_ETH_USDT_ERC20&amount=15.00
+
+### 测试 USDT_ERC20 (旧格式)
+GET http://localhost:3555/test/tokenpay/create?currency=USDT_ERC20&amount=10.00
+
+### 3. 获取支付方式列表
+GET http://localhost:3555/payments/methods
+
+### 4. 正式创建 TokenPay 订单（需要JWT）
+POST http://localhost:3555/payments/tokenpay/order
+Content-Type: application/json
+Authorization: Bearer your_jwt_token_here
+
+{
+    "amount": 100000,
+    "type": "channel",
+    "dst_code": "USDT",
+    "callback_url": "http://localhost:3000/wallet",
+    "chain_type": "TRX"
+}
+
+### 5. 模拟 TokenPay 回调
+POST http://localhost:3555/payments/tokenpay/notify
+Content-Type: application/json
+
+{
+    "order_id": "TEST123456",
+    "tx_hash": "0x1234567890abcdef",
+    "amount": "10.00",
+    "status": "paid",
+    "chain": "TRX",
+    "confirmations": 12,
+    "timestamp": 1700000000
+}
+
+### 6. 登录获取JWT（用于测试）
+POST http://localhost:3555/api/login
+Content-Type: application/json
+
+{
+    "username": "testuser",
+    "password": "password"
+}

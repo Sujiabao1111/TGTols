@@ -1,0 +1,142 @@
+### 测试注册
+POST  http://127.0.0.1:3555/api/reg
+Content-Type: application/json
+
+{
+    "username":"test2",
+    "password":"test223456"
+}
+
+### 测试登录
+POST  http://127.0.0.1:3555/api/login
+Content-Type: application/json
+
+{
+    "username":"test1",
+    "password":"test123456"
+}
+
+### 测试jwt
+GET  http://127.0.0.1:3555/jwtecho
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NjU5NDM1NjUsImlzcyI6ImdhbWUtY2VudGVyIiwidWlkIjozLCJ1c2VybmFtZSI6InRlc3QyIn0.DZjRHfY3IwVg6uRAN3ElpjKfmAZ2vScgdGVhovPK5sw
+
+### 测试邮件
+GET  http://127.0.0.1:3555/mails
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NjYxMTEzMTEsImlzcyI6ImdhbWUtY2VudGVyIiwidWlkIjoyLCJ1c2VybmFtZSI6InRlc3QxIn0.J6hFdvQ6qMoS0nIc1CdlUP2SlI_o1LIM52BCSppiqDU
+
+### 测试发邮件
+POST  http://127.0.0.1:3555/mail/send_6942342fe37f068e3f56594e
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NjYxMTEzMTEsImlzcyI6ImdhbWUtY2VudGVyIiwidWlkIjoyLCJ1c2VybmFtZSI6InRlc3QxIn0.J6hFdvQ6qMoS0nIc1CdlUP2SlI_o1LIM52BCSppiqDU
+
+{
+  "user_ids": [1, 2],
+  "title": "停机维护补偿通知",
+  "content": "亲爱的玩家，由于昨晚服务器进行升级维护，给您带来的不便深表歉意。特此发放维护补偿，请点击下方领取。",
+  "attachments": [
+    {
+      "type": "balance",
+      "value": 88.88,
+      "ref_id": 0
+    },
+    {
+      "type": "vip_exp",
+      "value": 100,
+      "ref_id": 0
+    },
+    {
+      "type": "item",
+      "value": 5,
+      "ref_id": 2001
+    }
+  ]
+}
+
+### 测试领邮件
+POST  http://127.0.0.1:3555/mails/2/claim
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NjYxMTEzMTEsImlzcyI6ImdhbWUtY2VudGVyIiwidWlkIjoyLCJ1c2VybmFtZSI6InRlc3QxIn0.J6hFdvQ6qMoS0nIc1CdlUP2SlI_o1LIM52BCSppiqDU
+
+### 测试数据
+POST  https://api.nexapi.xyz/Game/GetList
+Content-Type: application/json
+
+{
+  "AgentId": "6942342fe37f068e3f56594e",
+  "LoginId": "",
+  "GameProviderCode": 1,
+  "GameCode": "",
+  "IsMobile": null
+}
+
+###
+POST http://127.0.0.1:8185/api/register HTTP/1.1
+Content-Type: application/x-www-form-urlencoded
+
+account=1234561@qq.com
+&password=123456
+&inviteCode=MN6XTSE2
+
+###
+POST http://127.0.0.1:8185/api/login HTTP/1.1
+Content-Type: application/x-www-form-urlencoded
+
+account=1234561@qq.com
+&password=123456
+&sms_code=
+
+###
+POST http://127.0.0.1:8185/api/info HTTP/1.1
+Content-Type: application/x-www-form-urlencoded
+token: TOKEN:643ee77659c14b1d951407a5ed2e2ba5
+
+account=123456@qq.com
+&password=123456
+&sms_code=
+
+###
+POST http://127.0.0.1:8185/api/contractPage?symbols=BTC%2FUSDT&coin=USDT HTTP/1.1
+Content-Type: application/x-www-form-urlencoded
+token: TOKEN:643ee77659c14b1d951407a5ed2e2ba5
+
+symbols=BTC/USDT
+&coin=USDT
+
+### 测试数据
+POST  http://localhost:3555/games/options
+Content-Type: application/json
+
+### 测试数据
+POST  http://localhost:3555/games/list
+Content-Type: application/json
+
+{
+    "page":1,
+    "page_size":3,
+    "game_type_id":"SLOT",
+    "game_provider":"PRG"
+}
+
+### 测试数据
+POST  http://localhost:3555/games/lobby
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NjYyODYxOTEsImlzcyI6ImdhbWUtY2VudGVyIiwidWlkIjoyLCJ1c2VybmFtZSI6InRlc3QxIn0.gWs6BY8T9QlXWkySOr9kTcG03zG-5kHCXromVu00uuw
+
+{
+    "provider_code":"SXB",
+    "is_mobile":false,
+    "language":"en"
+}
+
+### 测试榜单
+POST  http://localhost:3555/games/featured
+Content-Type: application/json
+
+### 测试数据
+POST  https://hddfw.vazhenina.com/hddfwother/games/launch2
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NjgyOTczMjcsImlzcyI6ImdhbWUtY2VudGVyIiwidWlkIjoxMDAwMDEsInVzZXJuYW1lIjoidGVzdF9vbmx5d2ViX2FjY18wMDEifQ.SlrmZqnAali3Torz2A3HVCBdqRsQ32Z-o6YgEgJI75U
+
+{"game_code": "vs20bl", "is_mobile": true, "language": "CN"}

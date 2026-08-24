@@ -1,0 +1,96 @@
+### 测试 1：注册事件 CompleteRegistration
+# 触发场景：新用户注册成功
+# 代码位置参考：hall/Handles/HandleModules/LoginModule.go:117
+POST https://graph.facebook.com/v18.0/1181611350716797/events
+Content-Type: application/json
+
+{
+  "test_event_code": "TEST94355",
+  "access_token": "EAA7RR1rH4foBQ9BjD9aGBasZBdmf8F10ivpXyNgjdUSUuebKINEwkftr9ZBcZC5oQEzrPvjkP2aZCGT4bKdafZAeXFa4wdRA9bMogLJpHLC3XZBogafER0QEQjgd070Y47NGY6ZCUWFGU1KtRF6PGAMCgMoNbvZAZBuAuxONZA4GV2RC3MFuVE9AyM9A6WnkmQtiVjswZDZD",
+  "data": [
+    {
+      "event_name": "CompleteRegistration",
+      "event_time": {{$timestamp}},
+      "event_id": "reg_{{$randomInt 100000 999999}}",
+      "action_source": "website",
+      "event_source_url": "https://yourgame.com/register",
+      "user_data": {
+        "client_ip_address": "203.0.113.10",
+        "client_user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      },
+      "custom_data": {
+        "user_id": "10086",
+        "account_hash": "e99a18c428cb38d5f260853678922e03", 
+        "account_type": "email",
+        "content_name": "user_registration"
+      }
+    }
+  ]
+}
+
+### 测试 2：支付事件 Purchase (示例：游戏内 100000 单位 = 10 USD)
+# 触发场景：用户充值成功
+# 代码位置参考：hall/Handles/HandleModules/RechargeModule.go:1115
+# 金额逻辑：游戏内价格 100000 ÷ 10000 = 10.00 USD
+POST https://graph.facebook.com/v18.0/1181611350716797/events
+Content-Type: application/json
+
+{
+  "test_event_code": "TEST94355",
+  "access_token": "EAA7RR1rH4foBQ9BjD9aGBasZBdmf8F10ivpXyNgjdUSUuebKINEwkftr9ZBcZC5oQEzrPvjkP2aZCGT4bKdafZAeXFa4wdRA9bMogLJpHLC3XZBogafER0QEQjgd070Y47NGY6ZCUWFGU1KtRF6PGAMCgMoNbvZAZBuAuxONZA4GV2RC3MFuVE9AyM9A6WnkmQtiVjswZDZD",
+  "data": [
+    {
+      "event_name": "Purchase",
+      "event_time": {{$timestamp}},
+      "event_id": "ORDER_20240309_001",
+      "action_source": "website",
+      "event_source_url": "https://yourgame.com/pay",
+      "user_data": {
+        "client_ip_address": "203.0.113.20",
+        "client_user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)"
+      },
+      "custom_data": {
+        "value": 10.00,
+        "currency": "USD",
+        "order_id": "ORDER_20240309_001",
+        "user_id": "10086",
+        "account_hash": "e99a18c428cb38d5f260853678922e03",
+        "content_type": "game_currency",
+        "content_ids": ["ORDER_20240309_001"],
+        "game_amount": 100000
+      }
+    }
+  ]
+}
+
+### 测试 3：支付事件 Purchase (大额测试：64800 单位 = 6.48 USD)
+POST https://graph.facebook.com/v18.0/1181611350716797/events
+Content-Type: application/json
+
+{
+  "test_event_code": "TEST94355",
+  "access_token": "EAA7RR1rH4foBQ9BjD9aGBasZBdmf8F10ivpXyNgjdUSUuebKINEwkftr9ZBcZC5oQEzrPvjkP2aZCGT4bKdafZAeXFa4wdRA9bMogLJpHLC3XZBogafER0QEQjgd070Y47NGY6ZCUWFGU1KtRF6PGAMCgMoNbvZAZBuAuxONZA4GV2RC3MFuVE9AyM9A6WnkmQtiVjswZDZD",
+  "data": [
+    {
+      "event_name": "Purchase",
+      "event_time": {{$timestamp}},
+      "event_id": "ORDER_20240309_002",
+      "action_source": "website",
+      "event_source_url": "https://yourgame.com/pay",
+      "user_data": {
+        "client_ip_address": "203.0.113.30",
+        "client_user_agent": "Mozilla/5.0 (Android 14; Mobile; rv:120.0)"
+      },
+      "custom_data": {
+        "value": 6.48,
+        "currency": "USD",
+        "order_id": "ORDER_20240309_002",
+        "user_id": "10087",
+        "account_hash": "ab56b4d92b40713acc5af89985d4b786",
+        "content_type": "game_currency",
+        "content_ids": ["ORDER_20240309_002"],
+        "game_amount": 64800
+      }
+    }
+  ]
+}

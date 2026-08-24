@@ -1,0 +1,740 @@
+支付对接需求
+与支付平台的约定
+0.以下(我方/商户)是指我们的游戏平台，(支付方/代收代付)是指提供接口的支付平台
+1.所有的POST请求Content-Type为：form-data;
+2.代收代付的平台回调需返回OK或SUCCESS字符, 若未返回, 则在12小时内重试5次, 之后便不再回调
+3.签名算法
+签名生成的通用步骤如下：
+第一步，设所有发送或者接收到的数据为集合M，将集合M内非空参数值的参数按照参数名ASCII码从小到大排序（字典序），使用URL键值对的格式（即key1=value1&key2=value2…）拼接成字符串。
+第二步，在stringA最后拼接上应用key得到stringSignTemp字符串，并对stringSignTemp进行MD5运算，再将得到的字符串所有字符转换为大写，得到sign值signValue。
+stringSignTemp="amount=amount&applydate=applydate&bankcode=bankcode&callbackurl=callbackurl&memberid=memberid&notifyurl=notifyurl&orderid=orderid&key=key"
+sign=MD5(stringSignTemp).toUpperCase()
+空值不参与签名，空值包括(“”,0,”0”,null,false)
+
+4.返回说明
+返回status(不代表业务状态)
+编码	说明
+success	成功
+error	失败
+返回errCode
+编码	说明
+1001	系统错误
+1002	业务处理失败
+1003	签名错误
+1004	参数错误
+1301	通道未开通
+1302	通道暂时关闭
+1304	银行卡不支持
+1403	商户余额不足
+1404	商户关闭
+1405	商户拦截
+1406	商户重复订单拦截
+1407	商户订单未找到
+1501	代收该支付方式暂不支持
+1601	银行卡信息错误 Bank Card Error
+1602	银行维护中 Bank Maintenance
+1603	银行通道请求失败 Request Failed, Please try again later
+1604	银行卡账户已关闭 Bank Card Closed
+1605	银行风控拦截 Risk Interception
+1606	银行处理异常 Bank Expect
+1607	银行用户名错误 Bank Account Name Error
+1621	代付银行暂不支持
+1671	代付银行冲正退款
+
+5.PHP代收示例
+<?php
+
+class Api
+{
+    //商户号
+    private $mch_id = 10085;
+    //商户APIKEY
+    private $mch_key = 'slrkogmvo13hb92d8i5111bxm8q8euc7';
+
+    //生成签名
+    private function sign($data, $Md5key)
+    {
+        ksort($data);
+        $md5str = "";
+        foreach ($data as $key => $val) {
+            if (!empty($val)) {
+                $md5str = $md5str . $key . "=" . $val . "&";
+            }
+        }
+        return strtoupper(md5($md5str . "key=" . $Md5key));
+    }
+
+    //CURL请求
+    protected function curl($url, $data = [], $method = 'POST')
+    {
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $method);
+        curl_setopt($curl, CURLOPT_URL, $url);
+        curl_setopt($curl, CURLOPT_FAILONERROR, false);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_HEADER, false);
+        if (1 == strpos("$" . $url, "https://")) {
+            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+        }
+        curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+        $res = curl_exec($curl);
+        if (curl_errno($curl)) {
+            return 'ERROR_200' . curl_error($curl);
+        }
+        curl_close($curl);
+        return $res;
+    }
+
+    //代收请求
+    public function ds()
+    {
+        $param = [
+            "memberId"    => $this->mch_id,
+            "type"        => 'bank',
+            "orderId"     => 'E2021090512312314',
+            "dstCode"    => 'PERMATA',
+            "amount"      => 50000,
+            "dateTime"    => date("Y-m-d H:i:s"),
+            "name"        => 'xinmiti',
+            "phone"       => '088291448849',
+            "email"       => 'gotocode@gmail.com',            
+            "notifyUrl"   => 'http://www.yourdomain.com/demo/notifyurl.php'
+        ];
+        $param["sign"] = $this->sign($param, $this->mch_key);
+        return $this->curl('http://pay.xxxxxx.com/Pay_Index.html', $param);
+    }
+}
+
+6.类型(type)
+编码	说明
+bank	银行卡VA
+market	便利店VA
+ewallet	电子钱包
+qris	扫码
+
+7.dstCode收款方式编码
+银行(bank)类型编码(dstCode)
+银行编码	银行名称	备注
+PERMATA	PT. BANK PERMATA, TBK	金额范围10,000 ~ 50,000,000
+BNI	PT. BANK NEGARA INDONESIA (PERSERO)	金额范围10,000 ~ 50,000,000
+CIMB	PT. BANK CIMB NIAGA TBK	金额范围10,000 ~ 50,000,000
+BRI	PT. BANK RAKYAT INDONESIA (PERSERO)	金额范围10,000 ~ 50,000,000
+MANDIRI	PT. BANK MANDIRI (PERSERO) TBK	金额范围10,000 ~ 50,000,000
+NEO	BANK NEO COMMERCE	金额范围10,000 ~ 50,000,000
+DANAMON	PT. BANK DANAMON INDONESIA Tbk.	金额范围10,000 ~ 50,000,000
+MUAMALAT	PT. BANK MUAMALAT INDONESIA	金额范围10,000 ~ 50,000,000
+SINARMAS	PT. BANK SINARMAS	金额范围10,000 ~ 50,000,000
+OCBC	PT. BANK OCBC NISP, Tbk.	金额范围10,000 ~ 50,000,000
+BSI	BANK SYARIAH INDONESIA	金额范围10,000 ~ 50,000,000
+钱包(ewallet)类型编码(dstCode)
+电子钱包编码	电子钱包名称	备注
+LINKAJA	LINKAJA	金额范围10,000 ~ 20,000,000
+OVO	OVO	金额范围10,000 ~ 20,000,000
+DANA	DANA	金额范围10,000 ~ 20,000,000
+DANA_N	DANA原生	金额范围10,000 ~ 20,000,000
+扫码(qris)类型编码(dstCode)
+扫码编码	扫码名称	备注
+QRIS	QRIS	金额范围10,000 ~ 10,000,000
+
+8.接口
+8-1.创建代收订单(收银台)
+POST
+/pay_counter.html
+默认在未传参数dstCode时下发聚合支付页面链接，
+如传dstCode指定支付方式则下发对应支付方式的链接
+
+dstCode类型	建议
+银行va	如没有自己的va展示页建议使用
+qris扫码	如没有自己的二维码展示页建议使用
+钱包	仅OVO钱包建议使用，其他钱包建议使用非收银台接口
+
+请求参数
+export interface ApifoxModel {
+    /**
+     * 订单金额，单位：印尼盾，最小10000，整数
+     */
+    amount: number;
+    /**
+     * 返回跳转到指定页面
+     */
+    callbackUrl?: string;
+    /**
+     * 提交时间，印尼时间，时间格式：2022-01-26 18:18:18
+     */
+    dateTime: string;
+    /**
+     * 代收方式编码，可选，选择后则下发指定支付页 (DANA LINKAJA不建议使用该接口，建议使用非收银台接口)，不选择则下发收银台首页
+     */
+    dstCode?: string;
+    /**
+     * 客户邮箱，校验邮箱格式
+     */
+    email: string;
+    /**
+     * 收银台默认语言：id印尼语 en英语，非必传，默认id
+     */
+    lang?: string;
+    /**
+     * 商户号，平台分配商户号
+     */
+    memberId: string;
+    /**
+     * 客户名称，不允许带数字，不验真但是会显示给客户终端
+     */
+    name: string;
+    /**
+     * 服务端通知，服务端返回地址.（POST返回数据）
+     */
+    notifyUrl: string;
+    /**
+     * 订单号，    商户订单号，长度小于32位 唯一
+     */
+    orderId: string;
+    /**
+     * 客户电话
+     */
+    phone: string;
+    /**
+     * 充值产品信息，显示在收银台中
+     */
+    productInfo: string;
+    /**
+     * 签名
+     */
+    sign: string;
+    /**
+     * 版本号，非必传，默认为1，如需在回调中和查询中返回对应的支付方式字段dstCode时则使用2
+     */
+    version?: number;
+    [property: string]: any;
+}
+
+请求示例go代码
+package main
+
+import (
+   "fmt"
+   "bytes"
+   "mime/multipart"
+   "net/http"
+   "io/ioutil"
+)
+
+func main() {
+
+   url := "/pay_counter.html"
+   method := "POST"
+
+   payload := &bytes.Buffer{}
+   writer := multipart.NewWriter(payload)
+   _ = writer.WriteField("memberId", "10036")
+   _ = writer.WriteField("orderId", "22061018034648993211")
+   _ = writer.WriteField("dstCode", "PERMATA")
+   _ = writer.WriteField("amount", "50000")
+   _ = writer.WriteField("dateTime", "2022-04-06 10:42:46")
+   _ = writer.WriteField("notifyUrl", "http://youdomain/repay-notify-url")
+   _ = writer.WriteField("name", "SINDINTOWE")
+   _ = writer.WriteField("phone", "088291448849")
+   _ = writer.WriteField("email", "dongtianhot@gmail.com")
+   _ = writer.WriteField("lang", "id")
+   _ = writer.WriteField("productInfo", "recharge")
+   _ = writer.WriteField("callbackUrl", "https://www.google.com")
+   _ = writer.WriteField("version", "1")
+   _ = writer.WriteField("sign", "212DC6A96B038EBF4CBCF9053DDCDC9A")
+   err := writer.Close()
+   if err != nil {
+      fmt.Println(err)
+      return
+   }
+
+
+   client := &http.Client {
+   }
+   req, err := http.NewRequest(method, url, payload)
+
+   if err != nil {
+      fmt.Println(err)
+      return
+   }
+   req.Header.Set("Content-Type", writer.FormDataContentType())
+   res, err := client.Do(req)
+   if err != nil {
+      fmt.Println(err)
+      return
+   }
+   defer res.Body.Close()
+
+   body, err := ioutil.ReadAll(res.Body)
+   if err != nil {
+      fmt.Println(err)
+      return
+   }
+   fmt.Println(string(body))
+}
+响应：成功时
+{
+    "status": "success",
+    "msg": "申请成功",
+    "errCode": null,
+    "amount": "180000",
+    "payUrl": "http://dev-api.defipay.com/pay_cashier.html?sn=17oFYhCxYJrV5ZCbxoeG",
+    "dateTime": "20220426144458"
+}
+响应：失败时
+{
+    "status": "error",
+    "msg": "申请失败",
+    "errCode": 1001
+}
+
+
+8-2.代收异步通知(商户提供)
+这个接口由我方提供，支付平台收到用户付款后回调我方接口
+
+支付平台请求我方参数
+export interface ApifoxModel {
+    /**
+     * 订单金额
+     */
+    amount: number;
+    /**
+     * 手续费金额
+     */
+    cost: number;
+    /**
+     * 收款方式编号，注意：版本为2是才会下发该字段
+     */
+    dstCode?: string;
+    /**
+     * 商户编号
+     */
+    memberId: number;
+    /**
+     * 商户订单号
+     */
+    orderId: string;
+    /**
+     * 平台订单号
+     */
+    platOrderId: string;
+    /**
+     * 业务状态    1：表示成功，2：表示失败 3：处理中
+     */
+    refCode: number;
+    /**
+     * 业务描述，消息内容
+     */
+    refMsg: string;
+    /**
+     * MD5签名
+     */
+    sign: string;
+    /**
+     * 请求状态，该标识不做为成功与否，只做为请求状态。
+     */
+    status: string;
+    [property: string]: any;
+}
+我方处理订单后，需要返回OK或SUCCESS字符, 若未返回, 则在12小时内支付平台重试5次, 之后便不再回调
+
+
+8-3.代付编码
+代付钱包编码
+编码(dstCode)	钱包名称
+OVO	OVO
+DANA	DANA
+GOPAY	GOPAY
+SHOPEEPAY	SHOPEEPAY
+LINKAJA	LINKAJA
+
+代付银行编码
+编码(dstCode)	银行名称
+PERMATA	PT. BANK PERMATA, TBK
+PERMATA_SYARIAH	BANK PERMATA SYARIAH
+BANGKOK	BANK BANGKOK
+ACEH_SYARIAH	PT. BANK ACEH SYARIAH
+AGRIS	PT. BANK IBK INDONESIA TBK
+PRIMA_MASTER	PT. PRIMA MASTER BANK
+QNB_INDONESIA	PT. BANK QNB INDONESIA, TBK
+BPD_SULAWESI_TENGGARA	BANK BPD SULAWESI TENGGARA
+BPD_SULAWESI_UTARA	PT. BANK PEMBANGUNAN DAERAH SULUT (SULUTGO)
+BPD_SUMATERA_BARAT	PT. BANK PEMBANGUNAN DAERAH SUMATERA BARAT
+BPD_SUMATERA_BARAT_SYARIAH	BANK BPD SUMATERA BARAT SYARIAH
+BPD_SUMATERA_SELATAN_BABEL	BANK BPD SUMATERA SELATAN BABEL
+BPD_SUMATERA_SELATAN_SYARIAH	BANK BPD SUMATERA SELATAN SYARIAH
+BPD_YOGYAKARTA	BANK BPD YOGYAKARTA
+BPD_YOGYAKARTA_SYARIAH	BANK BPD YOGYAKARTA SYARIAH
+BTN_SYARIAH	BANK BTN SYARIAH
+CIMB_SYARIAH	BANK CIMB NIAGA SYARIAH
+CITIBANK	CITIBANK, NA
+COMMONWEALTH	PT. BANK COMMONWEALTH
+DANAMON_SYARIAH	BANK DANAMON SYARIAH
+DBS_INDONESIA	PT. BANK DBS INDONESIA
+DEUTSCHE_AG	BANK DEUTSCHE AG
+PANIN	PT. PANIN BANK Tbk.
+PANIN_SYARIAH	PT. BANK PANIN DUBAI SYARIAH
+AMAR_INDONESIA	PT. BANK AMAR INDONESIA
+ANZ_INDONESIA	PT. BANK ANZ INDONESIA
+ARTHA_GRAHA	PT. BANK ARTHA GRAHA INTERNASIONAL, TBK
+ARTOS_INDONESIA	PT. BANK ARTOS INDONESIA (JAGO)
+BCA_SYARIAH	BANK BCA SYARIAH
+BISNIS_INTERNASIONAL	BANK BISNIS INTERNASIONAL
+BNI	PT. BANK NEGARA INDONESIA (PERSERO)
+BTPN_SYARIAH	BANK BTPN SYARIAH
+BUKOPIN	PT. BANK BUKOPIN Tbk.
+BUMI_ARTA	PT. BANK BUMI ARTA
+CAPITAL_INDONESIA	PT BANK CAPITAL INDONESIA
+BCA	PT. BANK CENTRAL ASIA TBK.
+CENTRATAMA	BANK CENTRATAMA
+CHINA_CONSTRUCTION_INDONESIA	PT. BANK CHINA CONSTRUCTION BANK INDONESIA
+CTBC_INDONESIA	PT. BANK CTBC INDONESIA
+DANAMON	PT. BANK DANAMON INDONESIA Tbk.
+KESEJAHTERAAN	PT. BANK KESEJAHTERAAN EKONOMI
+MANDIRI	PT. BANK MANDIRI (PERSERO) TBK
+MASPION_INDONESIA	PT. BANK MASPION
+MAYAPADA	PT. BANK MAYAPADA Tbk.
+MAYBANK	PT. BANK MAYBANK INDONESIA Tbk.
+MAYBANK_UUS	BANK MAYBANK INDONESIA UUS
+MAYBANK_SYARIAH	BANK MAYBANK SYARIAH INDONESIA
+MAYORA	PT. BANK MAYORA
+MEGA_SYARIAH	PT. BANK MEGA SYARIAH
+MEGA	PT. BANK MEGA Tbk.
+MESTIKA_DHARMA	PT. BANK MESTIKA DHARMA
+SHINHAN_INDONESIA	PT. BANK SHINHAN INDONESIA
+MITRANIAGA	BANK MITRANIAGA
+MIZUHO_INDONESIA	BANK MIZUHO INDONESIA
+MNC_INTERNATIONAL	PT. BANK MNC INTERNASIONAL, TBK
+MUAMALAT	PT. BANK MUAMALAT INDONESIA
+MULTI_ARTA_SENTOSA	PT. BANK MULTI ARTA SENTOSA
+JTRUST_INDONESIA	BANK JTRUST INDONESIA (BANK MUTIARA)
+NUSANTARA	BANK NUSANTARA
+OCBC_NISP	PT. BANK OCBC NISP, Tbk.
+OCBC_NISP_SYARIAH	BANK OCBC NISP SYARIAH
+OF_AMERICA	BANK OF AMERICA (Bank of America Merill-Lynch - BAML)
+OF_CHINA	BANK OF CHINA (HONG KONG) LIMITED
+OF_INDIA_INDONESIA	PT. BANK OF INDIA INDONESIA, TBK
+PIKKO	BANK PIKKO
+OKE_INDONESIA	PT. BANK OKE INDONESIA, TBK
+BPD_NTT	PT.BANK PEMBANGUNAN DAERAH NTT
+DKI	PT. BANK DKI
+DKI_SYARIAH	BANK DKI SYARIAH
+FAMA	BANK FAMA
+GANESHA	PT. BANK GANESHA
+HARDA_INTERNASIONAL	PT. BANK HARDA INTERNATIONAL
+HARMONI_INTERNATIONAL	BANK HARMONI INTERNATIONAL
+HSBC_INDONESIA	PT. BANK HSBC INDONESIA
+ICBC_INDONESIA	PT. BANK ICBC INDONESIA
+INA_PERDANA	PT. BANK INA PERDANA, Tbk
+INDEX_SELINDO	BANK INDEX SELINDO
+JABAR	PT. BANK PEMBANGUNAN DAERAH JABAR DAN BANTEN
+JABAR_SYARIAH	BANK JABAR BANTEN SYARIAH (BJB SYARIAH)
+JASA_JAKARTA	PT. BANK JASA JAKARTA
+JATIM	PT. BANK PEMBANGUNAN DAERAH JATIM
+JATIM_SYARIAH	BANK JATIM SYARIAH
+KEB_HANA	PT. BANK KEB HANA INDONESIA
+BRI	PT. BANK RAKYAT INDONESIA (PERSERO)
+BRI_AGRONIAGA	PT. BANK RAKYAT INDONESIA AGRONIAGA, TBK
+ROYAL_INDONESIA	BANK ROYAL INDONESIA (Bank Digital BCA - BLU)
+SAHABAT_SAMPOERNA	PT. BANK SAHABAT SAMPOERNA
+SBI_INDONESIA	PT. BANK SBI INDONESIA
+SINARMAS	PT. BANK SINARMAS
+SYARIAH_BRI	BANK SYARIAH BRI
+SYARIAH_BUKOPIN	PT. BANK SYARIAH BUKOPIN
+SYARIAH_MANDIRI	BANK SYARIAH INDONESIA
+BTN	PT. BANK TABUNGAN NEGARA (PERSERO)
+UOB	PT. BANK UOB INDONESIA
+VICTORIA_INTERNATIONAL	PT. BANK VICTORIA INTERNATIONAL
+VICTORIA_SYARIAH	PT. BANK VICTORIA SYARIAH
+WOORI_SAUDARA_INDONESIA	PT. BANK WOORI SAUDARA INDONESIA 1906, TBK
+YUDHA_BAKTI	BANK NEO COMMERCE
+BNI_SYARIAH	BANK BNI SYARIAH
+BNP_PARIBAS_INDONESIA	BANK BNP PARIBAS INDONESIA
+BPD_BALI	PT. BANK PEMBANGUNAN DAERAH BALI
+BPD_BANTEN	PT. BANK PEMBANGUNAN DAERAH BANTEN
+BPD_BENGKULU	PT. BPD BENGKULU
+BPD_JAMBI	PT.BANK PEMBANGUNAN DAERAH JAMBI
+BPD_JAWA_TENGAH	BANK BPD JAWA TENGAH (BANK JATENG)
+BPD_KALBAR	PT.BANK PEMBANGUNAN DAERAH KALBAR
+BPD_KALBAR_SYARIAH	BANK BPD KALBAR SYARIAH
+BPD_KALTIM	BANK BPD KALTIM (BANK KALTIMTARA)
+BPD_KALTIM_SYARIAH	BANK BPD KALTIM SYARIAH
+BPD_KALSEL	PT. BANK PEMBANGUNAN DAERAH KALSEL
+BPD_PAPUA	PT.BANK PEMBANGUNAN DAERAH PAPUA
+BPD_RIAU_KEPRI	PT. BANK PEMBANGUNAN DAERAH RIAU KEPRI
+BPD_KALSEL_SYARIAH	BANK BPD KALSEL SYARIAH
+BPD_KALTENG	BANK BPD KALTENG
+BPD_LAMPUNG	PT.BANK PEMBANGUNAN DAERAH LAMPUNG
+BPD_MALUKU	BANK BPD MALUKU
+BPD_NTB	BANK BPD NTB
+BPD_SULAWESI_TENGAH	BANK BPD SULAWESI TENGAH
+BPD_SUMATERA_UTARA	PT. BANK PEMBANGUNAN DAERAH SUMUT
+BPD_SUMUT_UNIT_SYARIAH	BANK BPD SUMUT UNIT SYARIAH
+BTPN	PT. Bank BTPN, Tbk.
+CIMB	PT. BANK CIMB NIAGA TBK
+MUFG_LTD	BANK MUFG LTD (BANK TOKYO MITSUBISHI UFJ)
+NOBU_NATIONAL	PT. BANK NATIONALNOBU
+SULSELBAR	PT. BANK SULSELBAR
+INTERIM	BANK INTERIM INDONESIA (BANK RABO)
+RESONA_PERDANIA	BANK RESONA PERDANIA
+STANDARD_CHARTERED	STANDARD CHARTERED BANK
+MANDIRI_TASPEN	PT. BANK MANDIRI TASPEN
+JP_MORGAN	BANK JP MORGAN
+BPD_JATENG_UUS	BANK BPD JATENG UUS
+NTB_SYARIAH	BANK NTB SYARIAH
+BSI	BANK SYARIAH INDONESIA
+BANK_PAYIN	BANK PAYIN
+
+PHP代付示例
+<?php
+
+class Api
+{
+    //商户号
+    private $mch_id = 10085;
+    //商户APIKEY
+    private $mch_key = 'slrkogmvo13hb92d8i5111bxm8q8euc7';
+
+    //生成签名
+    private function sign($data, $Md5key)
+    {
+        ksort($data);
+        $md5str = "";
+        foreach ($data as $key => $val) {
+            if (!empty($val)) {
+                $md5str = $md5str . $key . "=" . $val . "&";
+            }
+        }
+        return strtoupper(md5($md5str . "key=" . $Md5key));
+    }
+
+    //CURL请求
+    protected function curl($url, $data = [], $method = 'POST')
+    {
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $method);
+        curl_setopt($curl, CURLOPT_URL, $url);
+        curl_setopt($curl, CURLOPT_FAILONERROR, false);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_HEADER, false);
+        if (1 == strpos("$" . $url, "https://")) {
+            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+        }
+        curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+        $res = curl_exec($curl);
+        if (curl_errno($curl)) {
+            return 'ERROR_200' . curl_error($curl);
+        }
+        curl_close($curl);
+        return $res;
+    }
+
+    //代收请求
+    public function df()
+    {
+        $param = [
+            "memberId" => $this->mch_id,
+            "type"     => 'bankcard',
+            "orderId"  => 'E20210905123123123',
+            "dstCode"     => 'BCA',
+            "amount"   => 50000,
+            "account"  => '0123456789',
+            "name"     => 'TONGTIAN HOT',
+            "phone"    => '85193017660',
+            "email"    => 'gotocode@gmail.com',
+            "address"  => 'gotocode@gmail.com',
+            "notifyUrl"   => 'http://www.yourdomain.com/demo/notifyurl.php'
+        ];
+        $param["sign"] = $this->sign($param, $this->mch_key);
+        return $this->curl('http://pay.huolilian.com/Payment_Dfpay_add', $param);
+    }
+}
+
+创建代付订单
+POST
+/payment_dfpay_add.html
+请求参数
+export interface ApifoxModel {
+    /**
+     * 银行卡号或钱包账号 格式：9至18位数字，中间不带空格
+     */
+    account: string;
+    /**
+     * 客户地址，不验真
+     */
+    address?: string;
+    /**
+     * 订单金额，单位：印尼盾，整数，金额范围10,000~25,000,000
+     */
+    amount: number;
+    /**
+     * 代付编码(type为bankcard, dstCode对应代付银行编码;type为ewallet,dstCode对应代付钱包编码)
+     */
+    dstCode: string;
+    /**
+     * 客户邮箱，校验邮箱格式
+     */
+    email: string;
+    /**
+     * 商户编号
+     */
+    memberId: string;
+    /**
+     * 客户姓名，格式：英文、小数点、空格, 传用户真实代付成功率高
+     */
+    name: string;
+    /**
+     * 回调通知地址
+     */
+    notifyUrl: string;
+    /**
+     * 商户订单号
+     */
+    orderId: string;
+    /**
+     * 客户电话，印尼手机号08xxx，0省略（银行填对手机格式即可，钱包请填写正确的手机号。具体格式：628/08/8 + 8-11位数字）
+     */
+    phone: string;
+    /**
+     * 请查看签名算法
+     */
+    sign: string;
+    /**
+     * 类型(bankcard或ewallet)
+     */
+    type: string;
+    [property: string]: any;
+}
+
+请求示例go代码
+package main
+
+import (
+   "fmt"
+   "bytes"
+   "mime/multipart"
+   "net/http"
+   "io/ioutil"
+)
+
+func main() {
+
+   url := "/payment_dfpay_add.html"
+   method := "POST"
+
+   payload := &bytes.Buffer{}
+   writer := multipart.NewWriter(payload)
+   _ = writer.WriteField("orderId", "22032816481290241288")
+   _ = writer.WriteField("amount", "113400")
+   _ = writer.WriteField("address", "Jakarta")
+   _ = writer.WriteField("phone", "85193017660")
+   _ = writer.WriteField("name", "YOHAN")
+   _ = writer.WriteField("sign", "212DC6A96B038EBF4CBCF9053DDCDC9A")
+   _ = writer.WriteField("notifyUrl", "http://callback.com/")
+   _ = writer.WriteField("type", "bankcard")
+   _ = writer.WriteField("dstCode", "BCA")
+   _ = writer.WriteField("account", "231234567")
+   _ = writer.WriteField("email", "testEmailwhAJIOWi@gmail.com")
+   _ = writer.WriteField("memberId", "10036")
+   err := writer.Close()
+   if err != nil {
+      fmt.Println(err)
+      return
+   }
+
+
+   client := &http.Client {
+   }
+   req, err := http.NewRequest(method, url, payload)
+
+   if err != nil {
+      fmt.Println(err)
+      return
+   }
+   req.Header.Set("Content-Type", writer.FormDataContentType())
+   res, err := client.Do(req)
+   if err != nil {
+      fmt.Println(err)
+      return
+   }
+   defer res.Body.Close()
+
+   body, err := ioutil.ReadAll(res.Body)
+   if err != nil {
+      fmt.Println(err)
+      return
+   }
+   fmt.Println(string(body))
+}
+
+返回响应
+成功时:
+{
+    "status": "success",
+    "msg": "Payment application succeeded",
+    "errCode": null,
+    "platOrderId": "L0425572201223616",
+    "orderId": "CVER220425102700sn4FOFnWTeIw"
+}
+失败时:
+{
+    "status": "error",
+    "msg": "Insufficient Balance",
+    "errCode": 1403
+}
+
+8-4.代付异步通知(商户提供)
+本接口由商户提供，当代付成功或者失败时，平台请求该接口
+接收到服务器点对点通讯时，在页面输出“OK”（ 没有双引号，OK 两个字母大写 )
+支付方请求我方参数
+export interface ApifoxModel {
+    /**
+     * 订单金额
+     */
+    amount: number;
+    /**
+     * 费用金额
+     */
+    cost: number;
+    /**
+     * 商户号
+     */
+    memberId: number;
+    /**
+     * 商户订单号
+     */
+    orderId: string;
+    /**
+     * 平台订单号
+     */
+    platOrderId: string;
+    /**
+     * 业务状态，1：表示成功，2：表示失败
+     */
+    refCode: number;
+    /**
+     * 业务描述
+     */
+    refMsg: string;
+    /**
+     * 签名
+     */
+    sign: string;
+    /**
+     * 请求状态，该标识不做为业务成功与否
+     */
+    status: string;
+    [property: string]: any;
+}
+我方处理订单后，需要返回OK或SUCCESS字符
+
+8-5.业务流程
+8-5-1.支付
+前端wallet页面，需要展示新增的这个支付渠道(DANA),用户选择或者输入支付金额后，调用我方服务端的接口，发起收银台支付，返回支付页面给前端，前端跳转等待用户支付。
+用户支付完成后，我方后台会收到通知，前端刷新余额
+
+8-5-2.代付(提款)
+这块需求待定
+
+请结合我上面发给你的文档，分析情况，写出前后端对接支付的计划

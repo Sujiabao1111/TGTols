@@ -1,0 +1,78 @@
+{
+    "localURL": "127.0.0.1",
+    "port": 3555,
+    "dbDsn": "root:123456@tcp(127.0.0.1:3306)/star?charset=utf8mb4&parseTime=True&loc=Local",
+    "poolIdle": 10,
+    "poolMax": 100,
+    "jwt": "abcedfghijk",
+    "redisNode": "127.0.0.1:6379",
+    "redisDb": 0,
+    "agentid": "6a277fe0910b614d467099bb",
+    "prefix": "plat",
+    "agentapi": "https://api.nexapi.xyz/",
+    "game_platforms": {
+        "m7": {
+            "base_url": "https://api.ddhh.work/",
+            "client_id": "U2Va8Fv3lln3o91",
+            "client_key": "za1SjBCR7Q1XpqVcJmYbJUlt",
+            "agent_id": "richag01",
+            "currency": "USD",
+            "return_url": "https://gg.vazhenina.com"
+        },
+        "m7pp": {
+            "base_url": "https://gw.boan.games",
+            "api_key": "2wiX0NHkyrrJURICICfkqK5OkKOOO2sAeokOaAQasXNuLlPqz0gxwmcHDgcSbEth",
+            "api_secret": "Adby446h1IANfQxKMNePPC0HCfBinO2kj7uiSVi8L2bQU9T9wXxSZ1Re38JaEksq",
+            "vendor_code": "BOANZZPP",
+            "currency": "USD",
+            "return_url": "https://gg.vazhenina.com"
+        }
+    },
+    "payment": {
+        "base_url": "https://api-idn.transafe.co/",
+        "merchant_id": "15700",
+        "secret_key": "NgzJOYluq1OrYj3mXDNEtdJ3I2Q=",
+        "notify_url": "https://gg.vazhenina.com/api/payments/notify",
+        "return_url": "https://www.yourdomain.com/wallet",
+        "quantixcore": {
+            "base_url": "https://api.quantixcore.com",
+            "id": {
+                "merchant_id": "15700",
+                "secret_key": "NgzJOYluq1OrYj3mXDNEtdJ3I2Q=",
+                "notify_url": "https://gg.vazhenina.com/api/payments/notify",
+                "return_url": "https://www.yourdomain.com/wallet"
+            },
+            "ph": {
+                "merchant_id": "MO0CKQIH",
+                "secret_key": "sKDizux5S6D6AfL74Tgid0ErmCBXwK3o",
+                "notify_url": "https://gg.vazhenina.com/api/payments/notify",
+                "return_url": "https://www.yourdomain.com/wallet"
+            }
+        },
+        "tokenpay": {
+            "base_url": "https://pay.vazhenina.com",
+            "secret_key": "777",
+            "notify_url": "https://gg.vazhenina.com/api/payments/tokenpay/notify",
+            "return_url": "https://gg.vazhenina.com/wallet"
+        }
+    },
+    "vocher": "https://www.188topup.com",
+    "facebook_pixel": {
+        "pixel_id": "1500516558147369",
+        "access_token": "EAAVHZBwWWA0IBRaaJcmZAZCsZA1w2w4YxTJJGwysMjGuHZCJ5G2ZBvBZCxYNEvFUrbGVlVjJSmZCtr8o6BZAK8KdiDuyxLaVY2A1M1glOSTaNLM3kZADfZBVwfnugQ2eXkmRJJiFXTY6Yi7PnGq91AucodJST6EaRmc1pNumZBTZCnnmn7Mk4TfVxREeMCTtKW3nf6rzMZCwZDZD",
+        "api_version": "v18.0",
+        "inviter_user_ids": [
+            16
+        ],
+        "additional_pixels": [
+            {
+                "pixel_id": "1043390165025463",
+                "access_token": "EAAVZCDL9Rb5kBRvRSBhx12aDXOfICSjpZCJSjaqiwGlRfE3W8hnFIZA0INkKM66Aczeow77H3ecT1gSQXSFIrhud4ZBXjfWmQPUdpFxHJnNRU2GJfMQjrPmcfeEQfOYQOueOGyHBuLB4TkzGGZBPewhSOTiNMWJMvtL85bGYmErSZC1tFL9pDuiS0XOMs5BdlZA5QZDZD",
+                "api_version": "v18.0",
+                "inviter_user_ids": [
+                    19
+                ]
+            }
+        ]
+    }
+}

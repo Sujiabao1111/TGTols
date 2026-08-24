@@ -1,0 +1,9 @@
+{
+  "HomePage": {
+    "title": "你好世界!"
+  },
+  "LocaleSwitcher": {
+    "label": "换语言",
+    "locale": "{locale, select, ru {Russian} en {English} cn {Chinese} id {Indonesian} ph {Filipino} other {Unknown}}"
+  }
+}

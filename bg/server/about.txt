@@ -1,0 +1,4 @@
+1.第一次不需要配置数据库,前端页面打开第一次配置即可
+2.要使用redis需要在system部分配置true
+3.生产版本修改.env.production里的api路径
+VITE_BASE_PATH

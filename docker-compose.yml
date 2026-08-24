@@ -1,0 +1,105 @@
+# ============================================
+# TOLS 项目 Docker Compose 部署配置（精简版）
+# ============================================
+# 说明：
+#   - 只包含 be（Go后端）和 fe（Next.js前端）
+#   - MySQL / Redis 使用外部已有服务（如宝塔面板安装的）
+#   - behddfw 是另外的游戏项目，不在此维护
+#
+# 使用方法：
+#   1. 确保已安装 Docker + Docker Compose
+#   2. 复制 .env.docker 为 .env，填入数据库和 Clerk 配置
+#   3. 在项目根目录执行: docker-compose up -d
+#   4. 访问 http://localhost:3000
+#
+# 常用命令：
+#   docker-compose ps          # 查看运行状态
+#   docker-compose logs -f fe  # 查看前端日志
+#   docker-compose logs -f be  # 查看后端日志
+#   docker-compose stop        # 停止服务
+#   docker-compose start       # 启动服务
+#   docker-compose down        # 停止并删除容器
+# ============================================
+
+version: "3.8"
+
+services:
+  # ============================================
+  # 绠＄悊鍚庡彴鍚庣 (Gin-Vue-Admin Server)
+  # ============================================
+  bg-server:
+    build:
+      context: ./bg/server
+      dockerfile: Dockerfile
+    container_name: tols-bg-server
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # ============================================
+  # 绠＄悊鍚庡彴鍓嶇 (Gin-Vue-Admin Web)
+  # ============================================
+  bg-web:
+    build:
+      context: ./bg/web
+      dockerfile: Dockerfile
+    container_name: tols-bg-web
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - bg-server
+  # ============================================
+  # 主后端 (Go + Fiber)
+  # ============================================
+  be:
+    build:
+      context: ./be
+      dockerfile: Dockerfile
+    container_name: tols-be
+    restart: unless-stopped
+    ports:
+      - "3555:3555"
+    environment:
+      # 数据库连接配置（连接宝塔面板或外部的 MySQL）
+      # 本地测试：host.docker.internal（容器访问宿主机）
+      # 服务器部署：填宝塔服务器的实际 IP
+      DB_HOST: ${DB_HOST:-host.docker.internal}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_PASSWORD: ${DB_PASSWORD:-guesswhat}
+      DB_NAME: ${DB_NAME:-star}
+      # Redis 连接配置
+      REDIS_HOST: ${REDIS_HOST:-host.docker.internal}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      # BOAN / M7PP server-side credentials
+      BOAN_API_KEY: ${BOAN_API_KEY:-}
+      BOAN_API_SECRET: ${BOAN_API_SECRET:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # ============================================
+  # 用户前端 (Next.js)
+  # ============================================
+  fe:
+    build:
+      context: ./fe
+      dockerfile: Dockerfile
+      args:
+        # 后端 API 地址（浏览器可访问的地址）
+        # 本地 Docker 部署用 localhost，服务器部署改成域名
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-}
+        # Clerk 公钥（必须替换为你的真实 key）
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}
+    container_name: tols-fe
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Clerk 私钥（运行时环境变量，必须替换为你的真实 key）
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
+      # 后端 API 地址（服务端渲染时使用）
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-}
+    depends_on:
+      - be

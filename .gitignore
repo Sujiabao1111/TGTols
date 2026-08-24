@@ -1,0 +1,39 @@
+# Claude Code
+.claude/
+
+# Dependencies
+fe/node_modules/
+be/vendor/
+
+# Build outputs
+fe/.next/
+fe/dist/
+be/tmp/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+*.pid
+npm-debug.log*
+
+# Test coverage
+coverage/
+be/be
+be/.gocache
+be/.gocache_verify
+be/.gocache-test
+be/.gomodcache

@@ -1,0 +1,124 @@
+package common
+
+// ErrHtmlTemplate 错误页面模板
+// 注意：CSS中的 % 已替换为 % 以避免 Go 格式化错误
+const ErrHtmlTemplate = `
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a1a; color: white; overflow: hidden; height: 100vh; }
+        #game-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #ff6b6b; padding: 20px; text-align: center;}
+        .wechat-close-btn { position: fixed; top: 20px; right: 20px; width: 60px; height: 60px; background: rgba(255, 255, 255, 0.95); border-radius: 50%%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 1000; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); transition: all 0.3s ease; border: 2px solid rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
+        .wechat-close-btn:hover { transform: scale(1.1); background: rgba(255, 255, 255, 1); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2); }
+        .wechat-close-icon { width: 24px; height: 24px; position: relative; }
+        .wechat-close-icon::before, .wechat-close-icon::after { content: ''; position: absolute; top: 50%%; left: 50%%; width: 20px; height: 2px; background: #666; border-radius: 1px; }
+        .wechat-close-icon::before { transform: translate(-50%%, -50%%) rotate(45deg); }
+        .wechat-close-icon::after { transform: translate(-50%%, -50%%) rotate(-45deg); }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        %s
+        <div id="wechat-close-btn" class="wechat-close-btn"><div class="wechat-close-icon"></div></div>
+    </div>
+    <script>
+        class GameContainer {
+            constructor() { this.wechatCloseBtn = document.getElementById('wechat-close-btn'); }
+            init() { this.bindEvents(); }
+            bindEvents() { this.wechatCloseBtn.addEventListener('click', () => { this.closeGame(); }); }
+            closeGame() {
+                const eventData = { type: 'WEBVIEW_CLOSE_REQUEST', source: 'game-container', timestamp: Date.now() };
+                if (window.parent && window.parent !== window) { window.parent.postMessage(eventData, '*'); } else { window.top.postMessage(eventData, '*'); }
+            }
+        }
+        document.addEventListener('DOMContentLoaded', () => { new GameContainer().init(); });
+    </script>
+</body>
+</html>`
+
+// GameContainerTemplate 游戏容器模板
+// 注意：CSS中的 % 已替换为 % 以避免 Go 格式化错误
+const GameContainerTemplate = `
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game - %s</title> 
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a1a; color: white; overflow: hidden; height: 100vh; }
+        #game-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+        #game-frame { width: 100%%; height: 100%%; border: none; background: white; }
+        .wechat-close-btn { position: fixed; top: 20px; right: 20px; width: 60px; height: 60px; background: rgba(255, 255, 255, 0.95); border-radius: 50%%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 1000; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); transition: all 0.3s ease; border: 2px solid rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
+        .wechat-close-btn:hover { transform: scale(1.1); background: rgba(255, 255, 255, 1); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2); }
+        .wechat-close-icon { width: 24px; height: 24px; position: relative; }
+        .wechat-close-icon::before, .wechat-close-icon::after { content: ''; position: absolute; top: 50%%; left: 50%%; width: 20px; height: 2px; background: #666; border-radius: 1px; }
+        .wechat-close-icon::before { transform: translate(-50%%, -50%%) rotate(45deg); }
+        .wechat-close-icon::after { transform: translate(-50%%, -50%%) rotate(-45deg); }
+        .loading { position: fixed; top: 50%%; left: 50%%; transform: translate(-50%%, -50%%); z-index: 998; text-align: center; }
+        .spinner { width: 40px; height: 40px; border: 3px solid rgba(255, 255, 255, 0.3); border-radius: 50%%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; margin: 0 auto 15px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <iframe id="game-frame" src="%s"></iframe>
+        <div id="wechat-close-btn" class="wechat-close-btn"><div class="wechat-close-icon"></div></div>
+    </div>
+    <div id="loading" class="loading"><div class="spinner"></div><p>游戏加载中...</p></div>
+    <script>
+        class GameContainer {
+            constructor() { this.gameFrame = document.getElementById('game-frame'); this.wechatCloseBtn = document.getElementById('wechat-close-btn'); }
+            init() { this.bindEvents(); this.setupKeyboardShortcuts(); }
+            bindEvents() {
+                this.wechatCloseBtn.addEventListener('click', () => { this.closeGame(); });
+                this.gameFrame.addEventListener('load', () => { this.hideLoading(); });
+                this.gameFrame.addEventListener('error', () => { this.showError('游戏加载失败'); });
+            }
+            setupKeyboardShortcuts() { document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { this.closeGame(); } }); }
+            closeGame() {
+                // 发送关闭事件给Cocos Creator
+                const eventData = {
+                    type: 'WEBVIEW_CLOSE_REQUEST',
+                    source: 'game-container',
+                    timestamp: Date.now()
+                };
+                
+                // 使用postMessage发送事件
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage(eventData, '*');
+                }else{
+                    window.top.postMessage(eventData, '*');
+                }
+                
+                window.location.href = "close://callback?action=close&message=hello_from_web";
+            }
+            hideLoading() { document.getElementById('loading').style.display = 'none'; }
+                showError(message) {
+                    const eventData = {
+                    type: 'WEBVIEW_ERROR',
+                    source: 'game-container',
+                    message: message,
+                    timestamp: Date.now()
+                };
+                
+                // 使用postMessage发送事件
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage(eventData, '*');
+                }else{
+                    window.top.postMessage(eventData, '*');
+                }
+                window.location.href = "close://callback?action=close&message=hello_from_web";
+               
+            }
+        }
+        document.addEventListener('DOMContentLoaded', () => { const gameContainer = new GameContainer(); gameContainer.init(); });
+    </script>
+</body>
+</html>`

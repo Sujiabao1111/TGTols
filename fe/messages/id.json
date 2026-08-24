@@ -1,0 +1,9 @@
+{
+  "HomePage": {
+    "title": "Halo dunia!"
+  },
+  "LocaleSwitcher": {
+    "label": "Ubah bahasa",
+    "locale": "{locale, select, en {English} id {Indonesian} other {Unknown}}"
+  }
+}

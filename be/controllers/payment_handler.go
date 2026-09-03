@@ -37,6 +37,44 @@ func (h *PaymentHandler) GetPaymentMethods(c *fiber.Ctx) error {
 	return c.JSON(dtos.PaymentMethodsResponse{Methods: methods})
 }
 
+func (h *PaymentHandler) CreateTonOrder(c *fiber.Ctx) error {
+	uid := getUserIDFromJWT(c)
+	if uid == 0 {
+		return c.Status(401).JSON(dtos.ErrorResponse{Error: "unauthorized"})
+	}
+	var req dtos.TonCreateOrderRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(dtos.ErrorResponse{Error: err.Error()})
+	}
+	resp, err := h.paymentService.CreateTonOrder(c.Context(), uid, req.Amount)
+	if err != nil {
+		return c.Status(400).JSON(dtos.ErrorResponse{Error: err.Error()})
+	}
+	return c.JSON(resp)
+}
+
+func (h *PaymentHandler) GetTonRate(c *fiber.Ctx) error {
+	return c.JSON(fiber.Map{"usd_per_ton": h.paymentService.CurrentTONRate(c.Context())})
+}
+
+func (h *PaymentHandler) ConfirmTonOrder(c *fiber.Ctx) error {
+	uid := getUserIDFromJWT(c)
+	if uid == 0 {
+		return c.Status(401).JSON(dtos.ErrorResponse{Error: "unauthorized"})
+	}
+	var req struct {
+		OrderID string `json:"order_id"`
+		TxHash  string `json:"tx_hash"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(dtos.ErrorResponse{Error: err.Error()})
+	}
+	if err := h.paymentService.ConfirmTonOrder(c.Context(), uid, req.OrderID, req.TxHash); err != nil {
+		return c.Status(400).JSON(dtos.ErrorResponse{Error: err.Error()})
+	}
+	return c.JSON(fiber.Map{"status": "paid", "order_id": req.OrderID})
+}
+
 func (h *PaymentHandler) GetWithdrawMethods(c *fiber.Ctx) error {
 	methods, err := h.paymentService.GetWithdrawMethods(c.Context())
 	if err != nil {
@@ -132,6 +170,69 @@ func (h *PaymentHandler) GetUserPayments(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(orders)
+}
+
+func (h *PaymentHandler) CreateTelegramStarsOrder(c *fiber.Ctx) error {
+	userID := getUserIDFromJWT(c)
+	if userID == 0 {
+		return c.Status(fiber.StatusUnauthorized).JSON(dtos.ErrorResponse{Error: "not logged in"})
+	}
+	var req dtos.CreateTelegramStarsRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dtos.ErrorResponse{Error: "invalid request"})
+	}
+	resp, err := h.paymentService.CreateTelegramStarsOrder(c.Context(), userID, req)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dtos.ErrorResponse{Error: err.Error()})
+	}
+	return c.JSON(resp)
+}
+
+func (h *PaymentHandler) HandleTelegramStarsWebhook(c *fiber.Ctx) error {
+	secret := services.TelegramWebhookSecret()
+	if secret == "" || c.Get("X-Telegram-Bot-Api-Secret-Token") != secret {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
+	var update services.TelegramStarsUpdate
+	if err := c.BodyParser(&update); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dtos.ErrorResponse{Error: "invalid update"})
+	}
+	if err := h.paymentService.HandleTelegramStarsUpdate(c.Context(), update); err != nil {
+		fmt.Printf("[TelegramStars] webhook error: %v\n", err)
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+	return c.JSON(fiber.Map{"ok": true})
+}
+
+func requireInternalToken(c *fiber.Ctx) bool {
+	cfg := helpers.GetCfgInstance()
+	return cfg != nil && cfg.Conf != nil && strings.TrimSpace(cfg.Conf.InternalToken) != "" && c.Get("X-Internal-Token") == strings.TrimSpace(cfg.Conf.InternalToken)
+}
+
+func (h *PaymentHandler) RefundTelegramStarsPayment(c *fiber.Ctx) error {
+	if !requireInternalToken(c) {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
+	var req dtos.TelegramRefundRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dtos.ErrorResponse{Error: "invalid request"})
+	}
+	if err := services.TelegramRefundStarPayment(c.Context(), req.TelegramUserID, req.ChargeID); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dtos.ErrorResponse{Error: err.Error()})
+	}
+	return c.JSON(fiber.Map{"ok": true})
+}
+
+func (h *PaymentHandler) GetTelegramStarsTransactions(c *fiber.Ctx) error {
+	if !requireInternalToken(c) {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
+	result, err := services.TelegramGetStarTransactions(c.Context(), c.QueryInt("offset", 0), c.QueryInt("limit", 100))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dtos.ErrorResponse{Error: err.Error()})
+	}
+	c.Type("json")
+	return c.Send(result)
 }
 
 // HandlePaymentNotify 处理支付回调通知 (公开接口，无需JWT)
@@ -291,10 +392,10 @@ func (h *PaymentHandler) CreateWithdrawOrder(c *fiber.Ctx) error {
 	if req.Amount <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(dtos.ErrorResponse{Error: "金额必须大于0"})
 	}
-	if req.Account == "" || req.AccountName == "" {
+	if req.Account == "" || (req.Type != "crypto" && req.AccountName == "") {
 		return c.Status(fiber.StatusBadRequest).JSON(dtos.ErrorResponse{Error: "账户信息不能为空"})
 	}
-	if req.Phone == "" || req.Email == "" {
+	if req.Type != "crypto" && (req.Phone == "" || req.Email == "") {
 		return c.Status(fiber.StatusBadRequest).JSON(dtos.ErrorResponse{Error: "联系信息不能为空"})
 	}
 

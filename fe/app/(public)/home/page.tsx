@@ -30,6 +30,7 @@ export default function HomeRoute() {
     // Store game in session storage for retrieval in game page
     const gameId = game.id
     sessionStorage.setItem(`game_${gameId}`, JSON.stringify(game))
+    sessionStorage.setItem("game_return_to_lobby", "1")
     router.push(`/game/${gameId}`)
   }
 

@@ -22,9 +22,9 @@ interface DepositFormProps {
 }
 
 const QUICK_AMOUNTS_IDR = [50000, 100000, 200000, 500000, 1000000]
-const QUICK_AMOUNTS_USDT_IDR = [100000, 200000, 500000, 1000000, 2000000]
+const QUICK_AMOUNTS_USDT_IDR = [10, 20, 50, 100, 200, 500]
 const QUICK_AMOUNTS_PHP = [100, 300, 500, 1000, 3000]
-const QUICK_AMOUNTS_USDT_PHP = [500, 1000, 3000, 5000, 10000]
+const QUICK_AMOUNTS_USDT_PHP = [10, 20, 50, 100, 200, 500]
 
 export function DepositForm({ selectedRegion, strictRegionOnly = false, onSuccess }: DepositFormProps) {
   const { t } = useLanguage()
@@ -43,6 +43,8 @@ export function DepositForm({ selectedRegion, strictRegionOnly = false, onSucces
   const { toast } = useToast()
 
   const isUSDT = selectedMethod?.code === "USDT"
+  const isTON = selectedMethod?.code === "TON"
+  const isTelegramStars = selectedMethod?.code === "TG_STARS"
   const isPHP = selectedMethod?.currency === "PHP" || (isUSDT && selectedRegion === "PH")
   const quickAmounts = isUSDT
     ? isPHP
@@ -51,9 +53,9 @@ export function DepositForm({ selectedRegion, strictRegionOnly = false, onSucces
     : isPHP
       ? QUICK_AMOUNTS_PHP
       : QUICK_AMOUNTS_IDR
-  const amountPrefix = isPHP ? "PHP" : "Rp"
-  const amountLabel = isPHP ? "Deposit Amount (PHP)" : t("wallet.deposit_amount")
-  const amountCurrency = isPHP ? "PHP" : "IDR"
+  const amountPrefix = isTON ? "USD" : isPHP ? "PHP" : "Rp"
+  const amountLabel = isTON ? "Deposit Amount (USD)" : isPHP ? "Deposit Amount (PHP)" : t("wallet.deposit_amount")
+  const amountCurrency = isTON ? "USD" : isPHP ? "PHP" : "IDR"
   const usdRate = getRate("USD") || 0.000061
   const phpRate = getRate("PHP") || 0.0035
   const usdtLocalRate = isPHP ? phpRate / usdRate : 1 / usdRate
@@ -151,6 +153,35 @@ export function DepositForm({ selectedRegion, strictRegionOnly = false, onSucces
       return
     }
 
+    if (selectedMethod.code === "TON") {
+      setLoading(true)
+      try {
+        const invoice = await paymentService.createTonOrder(numAmount)
+        const nano = invoice.nano_ton.toString()
+        const tonUrl = `ton://transfer/${encodeURIComponent(invoice.wallet_addr)}?amount=${nano}&text=${encodeURIComponent(invoice.comment)}`
+        window.location.href = tonUrl
+        toast({ title: "TON order created", description: `${invoice.amount_ton.toFixed(4)} TON · ${invoice.comment}` })
+        onSuccess?.()
+      } catch (error: unknown) {
+        toast({ title: "TON order failed", description: error instanceof Error ? error.message : t("common.error"), variant: "destructive" })
+      } finally { setLoading(false) }
+      return
+    }
+
+    if (selectedMethod.code === "TG_STARS") {
+      setLoading(true)
+      try {
+        const initData = (window as any).Telegram?.WebApp?.initData || ""
+        const response = await paymentService.createTelegramStarsOrder(numAmount, initData)
+        if (response.invoice_url) window.location.href = response.invoice_url
+        toast({ title: "Order Created", description: "Please complete payment in Telegram" })
+        onSuccess?.()
+      } catch (error: unknown) {
+        toast({ title: "Payment failed", description: error instanceof Error ? error.message : t("common.error"), variant: "destructive" })
+      } finally { setLoading(false) }
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -233,6 +264,12 @@ export function DepositForm({ selectedRegion, strictRegionOnly = false, onSucces
           selectedMethod={selectedMethod}
           onSelect={setSelectedMethod}
         />
+        {isTelegramStars && (
+          <div className="mt-3 rounded-xl border border-[#229ED9]/40 bg-[#229ED9]/10 p-4 text-sm text-[#8ed8ff]">
+            <div className="font-semibold text-white">Telegram Stars</div>
+            <div className="mt-1">将在 Telegram 内打开独立支付界面。当前 Bot 尚未配置，功能暂不可用。</div>
+          </div>
+        )}
       </div>
 
       <div>
@@ -248,19 +285,22 @@ export function DepositForm({ selectedRegion, strictRegionOnly = false, onSucces
           </button>
         )}
         <div className="grid grid-cols-3 gap-3 mb-4">
-          {quickAmounts.map((amt) => (
+          {quickAmounts.map((amt) => {
+            const quickAmountValue = isUSDT ? Math.ceil(amt * usdtLocalRate) : amt
+            return (
             <button
               key={amt}
-              onClick={() => setAmount(amt.toString())}
+              onClick={() => setAmount(quickAmountValue.toString())}
               className={`py-3 rounded-xl font-bold border transition-all ${
-                amount === amt.toString()
+                amount === quickAmountValue.toString()
                   ? "bg-lucky-gold border-lucky-gold text-lucky-dark"
                   : "bg-transparent border-white/20 text-white hover:border-lucky-gold"
               }`}
             >
-              {isPHP ? amt.toLocaleString() : `${(amt / 1000).toFixed(0)}K`}
+              {isUSDT ? `${amt}U` : isPHP ? amt.toLocaleString() : `${(amt / 1000).toFixed(0)}K`}
             </button>
-          ))}
+            )
+          })}
         </div>
 
         <div className="relative">

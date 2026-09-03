@@ -67,6 +67,26 @@ type PaymentConfig struct {
 	ReturnURL   string            `mapstructure:"return_url"`
 	QuantixCore QuantixCoreConfig `mapstructure:"quantixcore"`
 	TokenPay    TokenPayConfig    `mapstructure:"tokenpay"`
+	Telegram    TelegramConfig    `mapstructure:"telegram"`
+	TON         TONConfig         `mapstructure:"ton"`
+}
+
+type TelegramConfig struct {
+	BotToken      string `mapstructure:"bot_token"`
+	WebhookSecret string `mapstructure:"webhook_secret"`
+	StarsPerUSD   int64  `mapstructure:"stars_per_usd"`
+	Enabled       bool   `mapstructure:"enabled"`
+}
+
+type TONConfig struct {
+	WalletAddress string  `mapstructure:"wallet_address"`
+	Network       string  `mapstructure:"network"`
+	Enabled       bool    `mapstructure:"enabled"`
+	USDPerTON     float64 `mapstructure:"usd_per_ton"`
+	RateURL       string  `mapstructure:"rate_url"`
+	RateTTL       int     `mapstructure:"rate_ttl_seconds"`
+	APIURL        string  `mapstructure:"api_url"`
+	APIKey        string  `mapstructure:"api_key"`
 }
 
 type QuantixCoreConfig struct {

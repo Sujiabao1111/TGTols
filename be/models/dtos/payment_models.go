@@ -6,22 +6,32 @@ import (
 
 // PaymentOrder 支付订单表
 type PaymentOrder struct {
-	ID          uint64     `gorm:"primaryKey;autoIncrement" json:"id"`
-	UserID      uint64     `gorm:"not null;index:idx_user_id" json:"user_id"`
-	OrderID     string     `gorm:"size:64;not null;uniqueIndex:idx_order_id" json:"order_id"`
-	PlatOrderID string     `gorm:"size:64;default:''" json:"plat_order_id"`
-	Amount      float64    `gorm:"type:decimal(15,2);not null" json:"amount"`
-	Cost        float64    `gorm:"type:decimal(15,2);default:0.00" json:"cost"`
-	Type        string     `gorm:"size:20;not null" json:"type"`
-	DstCode     string     `gorm:"size:50;not null" json:"dst_code"`
-	Status      int        `gorm:"not null;default:0;index:idx_status" json:"status"`
-	RefCode     int        `gorm:"default:0" json:"ref_code"`
-	RefMsg      string     `gorm:"size:255;default:''" json:"ref_msg"`
-	PayURL      string     `gorm:"type:text" json:"pay_url"`
-	ProductInfo string     `gorm:"size:255;default:''" json:"product_info"`
-	PaidAt      *time.Time `json:"paid_at,omitempty"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	ID               uint64     `gorm:"primaryKey;autoIncrement" json:"id"`
+	UserID           uint64     `gorm:"not null;index:idx_user_id" json:"user_id"`
+	OrderID          string     `gorm:"size:64;not null;uniqueIndex:idx_order_id" json:"order_id"`
+	PlatOrderID      string     `gorm:"size:512;default:''" json:"plat_order_id"`
+	Amount           float64    `gorm:"type:decimal(15,2);not null" json:"amount"`
+	Cost             float64    `gorm:"type:decimal(15,2);default:0.00" json:"cost"`
+	Type             string     `gorm:"size:20;not null" json:"type"`
+	DstCode          string     `gorm:"size:50;not null" json:"dst_code"`
+	Status           int        `gorm:"not null;default:0;index:idx_status" json:"status"`
+	RefCode          int        `gorm:"default:0" json:"ref_code"`
+	RefMsg           string     `gorm:"size:255;default:''" json:"ref_msg"`
+	PayURL           string     `gorm:"type:text" json:"pay_url"`
+	ProductInfo      string     `gorm:"size:255;default:''" json:"product_info"`
+	TelegramUserID   string     `gorm:"size:32;default:'';index:idx_payment_telegram_user" json:"telegram_user_id,omitempty"`
+	StarsAmount      int64      `gorm:"default:0" json:"stars_amount,omitempty"`
+	InvoicePayload   string     `gorm:"size:128;default:null;uniqueIndex:idx_payment_invoice_payload" json:"invoice_payload,omitempty"`
+	TelegramChargeID string     `gorm:"size:512;default:null;uniqueIndex:idx_payment_telegram_charge" json:"telegram_charge_id,omitempty"`
+	ProviderChargeID string     `gorm:"size:512;default:''" json:"provider_charge_id,omitempty"`
+	TonAmount        float64    `gorm:"type:decimal(20,9);default:0;" json:"ton_amount,omitempty"`
+	TonRate          float64    `gorm:"type:decimal(20,8);default:0;" json:"ton_rate,omitempty"`
+	TonTxHash        string     `gorm:"size:128;default:'';uniqueIndex:idx_payment_ton_tx" json:"ton_tx_hash,omitempty"`
+	TonSender        string     `gorm:"size:128;default:''" json:"ton_sender,omitempty"`
+	RateSnapshot     string     `gorm:"type:text" json:"rate_snapshot,omitempty"`
+	PaidAt           *time.Time `json:"paid_at,omitempty"`
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
 }
 
 func (PaymentOrder) TableName() string {
@@ -33,7 +43,7 @@ type WithdrawOrder struct {
 	ID           uint64     `gorm:"primaryKey;autoIncrement" json:"id"`
 	UserID       uint64     `gorm:"not null;index:idx_user_id" json:"user_id"`
 	OrderID      string     `gorm:"size:64;not null;uniqueIndex:idx_order_id" json:"order_id"`
-	PlatOrderID  string     `gorm:"size:64;default:''" json:"plat_order_id"`
+	PlatOrderID  string     `gorm:"size:512;default:''" json:"plat_order_id"`
 	Amount       float64    `gorm:"type:decimal(15,2);not null" json:"amount"`
 	Cost         float64    `gorm:"type:decimal(15,2);default:0.00" json:"cost"`
 	Type         string     `gorm:"size:20;not null" json:"type"`
@@ -77,6 +87,24 @@ type CreatePaymentResponse struct {
 	Amount    float64 `json:"amount"`
 	Status    int     `json:"status"`
 	ExpiredAt string  `json:"expired_at"`
+}
+
+type CreateTelegramStarsRequest struct {
+	Amount   float64 `json:"amount"`
+	InitData string  `json:"init_data"`
+}
+
+type CreateTelegramStarsResponse struct {
+	OrderID     string  `json:"order_id"`
+	InvoiceURL  string  `json:"invoice_url"`
+	Amount      float64 `json:"amount"`
+	StarsAmount int64   `json:"stars_amount"`
+	Status      int     `json:"status"`
+}
+
+type TelegramRefundRequest struct {
+	TelegramUserID string `json:"telegram_user_id"`
+	ChargeID       string `json:"charge_id"`
 }
 
 // PaymentStatusResponse 支付状态
@@ -151,7 +179,7 @@ func (p *PaymentNotifyRequest) IsSuccess() bool {
 // CreateWithdrawRequest 创建提现订单请求
 type CreateWithdrawRequest struct {
 	Amount      float64 `json:"amount" binding:"required,gt=0"`
-	Type        string  `json:"type" binding:"required,oneof=bankcard ewallet"`
+	Type        string  `json:"type" binding:"required,oneof=bankcard ewallet crypto"`
 	DstCode     string  `json:"dst_code" binding:"required"`
 	Account     string  `json:"account" binding:"required"`
 	AccountName string  `json:"account_name" binding:"required"`
@@ -162,6 +190,21 @@ type CreateWithdrawRequest struct {
 	Channel     string  `json:"channel"`
 	BankCode    string  `json:"bank_code"`
 	ClientIP    string  `json:"client_ip"`
+}
+
+// TonCreateOrderRequest creates a native TON transfer invoice. Amount is USD.
+type TonCreateOrderRequest struct {
+	Amount     float64 `json:"amount"`
+	WalletAddr string  `json:"wallet_addr"`
+}
+type TonCreateOrderResponse struct {
+	OrderID    string  `json:"order_id"`
+	WalletAddr string  `json:"wallet_addr"`
+	AmountUSD  float64 `json:"amount_usd"`
+	AmountTON  float64 `json:"amount_ton"`
+	NanoTON    int64   `json:"nano_ton"`
+	Comment    string  `json:"comment"`
+	ExpiresAt  string  `json:"expires_at"`
 }
 
 type AdminApproveWithdrawRequest struct {

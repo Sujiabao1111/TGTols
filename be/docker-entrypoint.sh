@@ -36,6 +36,12 @@ BOAN_API_SECRET=${BOAN_API_SECRET:-}
 sed -i "s/BOAN_API_KEY_PLACEHOLDER/${BOAN_API_KEY}/g" /app/config.json
 sed -i "s/BOAN_API_SECRET_PLACEHOLDER/${BOAN_API_SECRET}/g" /app/config.json
 
+# Telegram Stars / Mini App credentials.
+TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+TELEGRAM_WEBHOOK_SECRET=${TELEGRAM_WEBHOOK_SECRET:-}
+sed -i "s|TELEGRAM_BOT_TOKEN_PLACEHOLDER|${TELEGRAM_BOT_TOKEN}|g" /app/config.json
+sed -i "s|TELEGRAM_WEBHOOK_SECRET_PLACEHOLDER|${TELEGRAM_WEBHOOK_SECRET}|g" /app/config.json
+
 if [ -z "${BOAN_API_KEY}" ] || [ -z "${BOAN_API_SECRET}" ]; then
   echo "WARNING: BOAN_API_KEY/BOAN_API_SECRET are empty; M7PP game sync will be disabled"
 else

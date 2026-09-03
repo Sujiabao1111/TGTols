@@ -22,6 +22,8 @@ export function PaymentMethods({ region, strictRegionOnly = false, selectedMetho
   useEffect(() => {
     const sortMethods = (data: PaymentMethod[]) =>
       [...data].sort((a, b) => {
+		if (a.code === "TG_STARS") return -1
+		if (b.code === "TG_STARS") return 1
         if (a.enabled === b.enabled) return 0
         return a.enabled ? -1 : 1
       })
@@ -29,7 +31,7 @@ export function PaymentMethods({ region, strictRegionOnly = false, selectedMetho
     const loadPaymentMethods = async () => {
       try {
         const data = await paymentService.getPaymentMethods()
-        const availableMethods = data.filter((method) => method.code !== "199VOUCHER")
+        const availableMethods = data.filter((method) => method.code !== "199VOUCHER" && method.code !== "TG_STARS")
         const initialRegionMethods = sortMethods(
           availableMethods.filter((method) => matchesDepositRegion(method, region, strictRegionOnly)),
         )
@@ -52,6 +54,8 @@ export function PaymentMethods({ region, strictRegionOnly = false, selectedMetho
     const filteredMethods = methods.filter((method) => matchesDepositRegion(method, region, strictRegionOnly))
 
     return [...filteredMethods].sort((a, b) => {
+	  if (a.code === "TG_STARS") return -1
+	  if (b.code === "TG_STARS") return 1
       if (a.enabled === b.enabled) return 0
       return a.enabled ? -1 : 1
     })
@@ -86,9 +90,9 @@ export function PaymentMethods({ region, strictRegionOnly = false, selectedMetho
         return (
           <div
             key={method.code}
-            onClick={() => !isDisabled && onSelect(method)}
+            onClick={() => (method.code === "TG_STARS" || !isDisabled) && onSelect(method)}
             className={`p-4 rounded-xl border transition-all flex items-center justify-between ${
-              isDisabled
+              isDisabled && method.code !== "TG_STARS"
                 ? "bg-white/5 border-white/5 opacity-50 cursor-not-allowed"
                 : isSelected
                   ? "bg-lucky-purple border-lucky-gold shadow-lucky-gold/10 shadow-lg cursor-pointer"

@@ -1,4 +1,5 @@
 #!/bin/bash
+PORT="${PORT:-5000}"
 
 # ============================================
 # TOLS 前端 (Next.js) 一键启动脚本
@@ -47,7 +48,7 @@ fi
 # 3. 启动新进程
 echo "[3/3] 启动服务..."
 
-nohup npm run start > all.log 2>&1 &
+nohup env PORT="$PORT" npm run start > all.log 2>&1 &
 echo "    已启动"
 
 APP_PID=$!
@@ -58,7 +59,7 @@ if ps -p $APP_PID > /dev/null 2>&1; then
     echo "========================================"
     echo "  启动成功！"
     echo "  PID:    $APP_PID"
-    echo "  端口:   3000"
+    echo "  端口:   $PORT"
     echo "  日志:   all.log"
     echo "  停止:   ./stop.sh"
     echo "========================================"

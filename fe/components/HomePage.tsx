@@ -489,13 +489,14 @@ const HomePage: React.FC<HomePageProps> = ({
   useEffect(() => {
     if (!activeGameType) return
     const lastProvider = getLastProviderKey(activeGameType.code)
-    setShowRecommendations(!lastProvider)
+    setShowRecommendations(activeGameType.code === "SLOT" && !lastProvider)
   }, [activeGameType?.code])
 
   const handleGameTypeSelect = (type: GameType) => {
     setActiveGameType(type)
     setActiveProvider(null)
     setSearchQuery("")
+    if (type.code !== "SLOT") setShowRecommendations(false)
     onFilterChange?.(type, null)
   }
 
@@ -620,7 +621,7 @@ const HomePage: React.FC<HomePageProps> = ({
           ZH: `${provider.name} 大廳`,
           TH: `${provider.name} ล็อบบี้`,
         },
-        img_url: `https://gg.vazhenina.com/img/providers/${provider.code}.png`,
+        img_url: `https://gg.ppnet55.com/img/providers/${provider.code}.png`,
         provider,
         is_lobby: true,
       }
@@ -628,7 +629,7 @@ const HomePage: React.FC<HomePageProps> = ({
       // const mockGames: ServerGame[] = Array.from({ length: 5 }, (_, index) => ({
       //   ...baseGame,
       //   id:`${provider.code}-lobby-${index}`,
-      //   img_url: `https://gg.vazhenina.com/img/providers/mock/${provider.code}${index + 1}.webp`,
+      //   img_url: `https://gg.ppnet55.com/img/providers/mock/${provider.code}${index + 1}.webp`,
       // }))
 
       // return [baseGame, ...mockGames]
@@ -931,7 +932,7 @@ const HomePage: React.FC<HomePageProps> = ({
                   isBrandsDragging ? "cursor-grabbing" : "cursor-grab",
                 )}
               >
-                <button
+                {activeGameType?.code === "SLOT" && <button
                   type="button"
                   onClick={() => {
                     setShowRecommendations(true)
@@ -940,13 +941,13 @@ const HomePage: React.FC<HomePageProps> = ({
                   }}
                   aria-pressed={showRecommendations}
                   className={cn(
-                    "relative h-[82px] w-[164px] shrink-0 overflow-hidden rounded-[10px] border bg-black/30 p-0 transition-all hover:opacity-90",
+                    "relative h-[62px] w-[29.44vw] shrink-0 overflow-hidden rounded-[10px] border bg-black/30 p-0 transition-all hover:opacity-90 sm:h-[72px] sm:w-[143px] md:h-[82px] md:w-[164px]",
                     showRecommendations ? "border-lucky-gold ring-2 ring-lucky-gold/60" : "border-white/10",
                   )}
                 >
                   <Image src="/images/logo/tuijian.png" alt="推荐玩法" fill sizes="164px" className="object-cover" />
                   <span className="sr-only">推荐玩法</span>
-                </button>
+                </button>}
                 {availableProviders.map((provider) => (
                   <ProviderBrandCard
                     key={`${activeGameType?.code || "ALL"}-${providerKey(provider)}`}
@@ -985,7 +986,7 @@ const HomePage: React.FC<HomePageProps> = ({
           </div>
         )}
 
-        {showRecommendations && recommendedGames.length > 0 && (
+        {showRecommendations && activeGameType?.code === "SLOT" && recommendedGames.length > 0 && (
           <div className="grid grid-cols-3 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {recommendedGames.map((game) => <GameCard key={game.id} game={game} onSelect={handleGameSelect} language={language.toUpperCase()} />)}
           </div>

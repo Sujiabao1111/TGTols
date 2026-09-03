@@ -999,7 +999,7 @@ git commit -m "chore: add qrcode.react dependency"
         "base_url": "https://pay-test.targeted.work/",
         "merchant_id": "10036",
         "secret_key": "xxx",
-        "notify_url": "https://gg.vazhenina.com/api/payments/notify",
+        "notify_url": "https://gg.ppnet55.com/api/payments/notify",
         "return_url": "https://www.yourdomain.com/wallet",
         "tokenpay": {
             "base_url": "http://your-tokenpay-server:8080",

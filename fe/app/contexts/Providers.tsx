@@ -9,6 +9,7 @@ import { GameProvider } from "./GameContext"
 import { activityService, authService } from "@/services/api"
 import { DESKTOP_APP_LAUNCH_SOURCE, getLaunchSource, registerPwaServiceWorker } from "@/lib/desktop-launch"
 import { AddDesktopInsuranceDialog } from "@/components/AddDesktopInsuranceDialog"
+import { TonConnectUIProvider } from "@tonconnect/ui-react"
 
 function DesktopLaunchRewardClaimer() {
   const { isLoggedIn } = useAuth()
@@ -42,6 +43,7 @@ export function Providers({ children }: { children: ReactNode }) {
   }, [])
 
   return (
+    <TonConnectUIProvider manifestUrl="https://gg.ppnet55.com/tonconnect-manifest.json">
     <LanguageProvider>
       <AuthProvider>
         <UserProvider>
@@ -54,5 +56,6 @@ export function Providers({ children }: { children: ReactNode }) {
         </UserProvider>
       </AuthProvider>
     </LanguageProvider>
+    </TonConnectUIProvider>
   )
 }

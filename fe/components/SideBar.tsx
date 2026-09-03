@@ -77,6 +77,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const languages: { code: Language; label: string; flag: string }[] = [
     { code: "en", label: "English", flag: "🇺🇸" },
     { code: "id", label: "Bahasa Indonesia", flag: "🇮🇩" },
+    { code: "ru", label: "Русский", flag: "🇷🇺" },
   ]
 
   const currentLang = languages.find((l) => l.code === language) || languages[0]

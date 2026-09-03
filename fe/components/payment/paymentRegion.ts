@@ -43,6 +43,15 @@ export function getCurrentForcedPaymentRegion(): PaymentRegion | null {
 }
 
 export function matchesDepositRegion(method: PaymentMethod, region: PaymentRegion, strictRegionOnly = false) {
+	if (method.code.toUpperCase() === "TON") return true
+	// Telegram Stars is rendered in its own payment section, never inside
+	// Indonesia/Philippines regional payment methods.
+	if (method.code.toUpperCase() === "TG_STARS") {
+		return false
+	}
+	if (method.code.toUpperCase() === "TG_STARS") {
+		return true
+	}
   // USDT is supported globally, including the region-locked Indonesia and Philippines sites.
   if (method.code.toUpperCase() === "USDT") {
     return true
@@ -71,6 +80,7 @@ export function getCurrencyByPaymentCode(code: string) {
 }
 
 export function matchesWithdrawRegion(method: WithdrawMethod, region: PaymentRegion) {
+  if (method.code.toUpperCase() === "TON" || method.currency === "TON") return true
   if (region === "ID") {
     return method.currency === "IDR"
   }

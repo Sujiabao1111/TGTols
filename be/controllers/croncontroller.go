@@ -31,6 +31,12 @@ func SetupAndGo() *cron.Cron {
 	// c.AddFunc("* * * * *", ClearSignQuest)
 	// Funcs are invoked in their own goroutine, asynchronously.
 	mustAddCron(c, "@daily", DailyGrabDatas)
+	mustAddCron(c, "@every 30s", func() {
+		_ = services.GetPaymentService().ExpireTonOrders(context.Background())
+		if err := services.GetPaymentService().ScanTonPendingOrders(context.Background()); err != nil {
+			log.Printf("[TON] pending order scan failed: %v", err)
+		}
+	})
 	mustAddCron(c, "@every 15m", func() {
 		if err := SyncAllGamesIfStale(gameListSyncInterval); err != nil {
 			log.Printf("[Sync] Scheduled game sync failed: %v", err)

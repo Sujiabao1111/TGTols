@@ -149,11 +149,29 @@ func Registertest(c *fiber.Ctx) error {
 		// ... 其他默认值
 	}
 
-	if err := models.GetInstance().DbInstance.Create(&newUser).Error; err != nil {
+	// Web registration must remain compatible with databases that predate the
+	// Telegram login migration. Explicitly limit the inserted columns so GORM
+	// does not include Telegram fields in INSERT/RETURNING.
+	registerDB := models.GetInstance().DbInstance
+	if err := registerDB.Table("users").Create(map[string]interface{}{
+		"username": newUser.Username, "password": newUser.Password, "status": newUser.Status,
+		"balance": newUser.Balance, "vip_level": newUser.VipLevel, "parent_id": newUser.ParentID,
+		"path": newUser.Path, "level": newUser.Level, "invite_code": newUser.InviteCode,
+		"total_deposit": newUser.TotalDeposit, "total_withdraw": newUser.TotalWithdraw,
+		"register_ip": newUser.RegisterIP, "register_domain": newUser.RegisterDomain,
+	}).Error; err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "用户名已存在或注册失败",
 		})
+	}
+	if err := registerDB.Where("username = ?", newUser.Username).First(&newUser).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "注册失败"})
+	}
+	// Some drivers do not populate the auto-increment ID when RETURNING is
+	// constrained. Recover it using the unique username before issuing updates.
+	if newUser.ID == 0 {
+		_ = registerDB.Select("id").Where("username = ?", newUser.Username).First(&newUser).Error
 	}
 
 	return c.JSON(fiber.Map{
@@ -266,13 +284,28 @@ func Register(c *fiber.Ctx) error {
 
 	// 7. 写入数据库
 	// 这里存在极小概率 InviteCode 重复，生产环境可以加个简单的重试循环
-	if err := models.GetInstance().DbInstance.Create(&newUser).Error; err != nil {
+	// Browser registration only writes columns shared by legacy schemas.
+	registerDB := models.GetInstance().DbInstance
+	if err := registerDB.Table("users").Select(
+		"username", "password", "status", "balance", "vip_level",
+		"parent_id", "path", "level", "invite_code", "total_deposit",
+		"total_withdraw", "register_ip", "register_domain",
+	).Create(map[string]interface{}{
+		"username": newUser.Username, "password": newUser.Password, "status": newUser.Status,
+		"balance": newUser.Balance, "vip_level": newUser.VipLevel, "parent_id": newUser.ParentID,
+		"path": newUser.Path, "level": newUser.Level, "invite_code": newUser.InviteCode,
+		"total_deposit": newUser.TotalDeposit, "total_withdraw": newUser.TotalWithdraw,
+		"register_ip": newUser.RegisterIP, "register_domain": newUser.RegisterDomain,
+	}).Error; err != nil {
 		// 检查是否是邀请码冲突 (MySQL Error 1062)
 		// 简单处理：如果是系统错误返回给前端
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "注册失败: " + err.Error(),
 		})
+	}
+	if err := registerDB.Where("username = ?", newUser.Username).First(&newUser).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "注册失败"})
 	}
 
 	now := time.Now()

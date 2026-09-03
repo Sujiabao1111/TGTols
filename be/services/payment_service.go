@@ -72,6 +72,8 @@ type paymentMethodOption struct {
 }
 
 var depositMethodConfigs = []paymentMethodConfig{
+	{Code: "TON", Name: "TON", Type: "crypto", Currency: "TON", Channel: "ton", MinAmount: 1, MaxAmount: 100000, Enabled: true, Description: "Native TON wallet transfer"},
+	{Code: "TG_STARS", Name: "Telegram Stars", Type: "channel", Currency: "XTR", Channel: "telegram", MinAmount: 1, MaxAmount: 100000, Enabled: true, Description: "Telegram Stars"},
 	{Code: "GCASH_QR", Name: "GCash QR", Type: "channel", Currency: "PHP", Channel: "quantixcore", MinAmount: 100, MaxAmount: 50000, Enabled: true, Description: "Philippines GCash QR payment"},
 	{Code: "GCASH_APP", Name: "GCash App", Type: "channel", Currency: "PHP", Channel: "quantixcore", MinAmount: 100, MaxAmount: 50000, Enabled: true, Description: "Philippines GCash app payment"},
 	{Code: "DANA", Name: "DANA", Type: "ewallet", Currency: "IDR", Channel: "gateway", MinAmount: 10000, MaxAmount: 20000000, Enabled: true, Description: "Indonesia DANA wallet"},
@@ -116,10 +118,12 @@ func buildLegacyGatewayWithdrawMethodConfigs() []paymentMethodConfig {
 var withdrawMethodConfigs = func() []paymentMethodConfig {
 	methods := []paymentMethodConfig{
 		{Code: "GCASH_QR", Name: "GCash", Type: "ewallet", Currency: "PHP", Channel: "quantixcore", AccountType: "GCASH", MinAmount: 100, MaxAmount: 50000, Enabled: true, Description: "Philippines GCash wallet"},
+		{Code: "TON", Name: "TON Wallet", Type: "ewallet", Currency: "USD", Channel: "manual", AccountType: "TON", MinAmount: 10, MaxAmount: 100000, Enabled: true, Description: "TON wallet withdrawal pending review"},
 	}
 
 	methods = append(methods, buildLegacyGatewayWithdrawMethodConfigs()...)
 	methods = append(methods,
+		paymentMethodConfig{Code: "TON", Name: "TON Wallet", Type: "crypto", Currency: "TON", Channel: "ton", MinAmount: 0, MaxAmount: 0, Enabled: false, Description: "TON wallet withdrawal (coming soon)"},
 		paymentMethodConfig{Code: "BDO", Name: "Banco de Oro", Type: "bankcard", Currency: "PHP", Channel: "quantixcore", AccountType: "GCASH", MinAmount: 100, MaxAmount: 50000, Enabled: false, Description: "Philippines bank transfer"},
 		paymentMethodConfig{Code: "BPI", Name: "Bank of the Philippine Islands", Type: "bankcard", Currency: "PHP", Channel: "quantixcore", AccountType: "GCASH", MinAmount: 100, MaxAmount: 50000, Enabled: false, Description: "Philippines bank transfer"},
 		paymentMethodConfig{Code: "METROBANK", Name: "Metrobank", Type: "bankcard", Currency: "PHP", Channel: "quantixcore", AccountType: "GCASH", MinAmount: 100, MaxAmount: 50000, Enabled: false, Description: "Philippines bank transfer"},
@@ -783,14 +787,18 @@ func (s *PaymentService) handleQuantixCorePaymentNotify(ctx context.Context, not
 }
 
 func (s *PaymentService) processPaymentSuccess(ctx context.Context, order *dtos.PaymentOrder, platOrderID string, now time.Time, usdAmount float64) error {
+	credited := false
 	if err := s.db.Transaction(func(tx *gorm.DB) error {
-		order.Status = 1
-		order.PlatOrderID = platOrderID
-		order.PaidAt = &now
-		order.UpdatedAt = now
-		if err := tx.Save(order).Error; err != nil {
-			return err
+		result := tx.Model(&dtos.PaymentOrder{}).
+			Where("id = ? AND status = ?", order.ID, 0).
+			Updates(map[string]interface{}{"status": 1, "plat_order_id": platOrderID, "paid_at": now, "updated_at": now})
+		if result.Error != nil {
+			return result.Error
 		}
+		if result.RowsAffected == 0 {
+			return nil
+		}
+		credited = true
 
 		var user dtos.User
 		if err := tx.First(&user, order.UserID).Error; err != nil {
@@ -835,6 +843,9 @@ func (s *PaymentService) processPaymentSuccess(ctx context.Context, order *dtos.
 		return nil
 	}); err != nil {
 		return err
+	}
+	if !credited {
+		return nil
 	}
 
 	if bonusErr := GetActivityService().ProcessNewUserRecharge(ctx, order.UserID, usdAmount); bonusErr != nil {
@@ -1022,7 +1033,10 @@ func walletRecordContainsCJK(value string) bool {
 }
 
 func (s *PaymentService) GetPaymentMethods(ctx context.Context) ([]dtos.PaymentMethod, error) {
-	methodCodes := []string{"GCASH_QR", "GCASH_APP", "DANA", "USDT", "PAYPAL"}
+	// Keep existing methods and expose Telegram Stars as a separate deposit tab/card.
+	// It remains disabled until a Bot Token is configured, but must still be returned
+	// so the frontend can display the dedicated Telegram payment interface.
+	methodCodes := []string{"TG_STARS", "GCASH_QR", "GCASH_APP", "DANA", "USDT", "PAYPAL"}
 	methods := make([]dtos.PaymentMethod, 0, len(methodCodes))
 	for _, code := range methodCodes {
 		cfg, ok := s.findDepositMethod(code)
@@ -1030,13 +1044,17 @@ func (s *PaymentService) GetPaymentMethods(ctx context.Context) ([]dtos.PaymentM
 			continue
 		}
 
+		enabled := cfg.Enabled
+		if code == "TG_STARS" {
+			enabled = telegramBotToken() != ""
+		}
 		methods = append(methods, dtos.PaymentMethod{
 			Code:        cfg.Code,
 			Name:        cfg.Name,
 			Type:        cfg.Type,
 			MinAmount:   cfg.MinAmount,
 			MaxAmount:   cfg.MaxAmount,
-			Enabled:     cfg.Enabled,
+			Enabled:     enabled,
 			Currency:    cfg.Currency,
 			Channel:     cfg.Channel,
 			Description: cfg.Description,
@@ -1080,10 +1098,14 @@ func (s *PaymentService) CreateTokenPayOrder(ctx context.Context, userID uint64,
 	}
 
 	localCurrency := normalizeCurrency(req.Currency)
-	if localCurrency != "PHP" {
+	if localCurrency != "USD" && localCurrency != "PHP" {
 		localCurrency = "IDR"
 	}
 	exchangeRate, err := models.GetInstance().GetExchangeRate(localCurrency)
+	if localCurrency == "USD" {
+		exchangeRate = 1
+		err = nil
+	}
 	if err != nil || exchangeRate <= 0 {
 		if localCurrency == "PHP" {
 			exchangeRate = 57
@@ -1145,7 +1167,11 @@ func (s *PaymentService) CreateTokenPayOrder(ctx context.Context, userID uint64,
 		return nil, fmt.Errorf("parse TokenPay response failed: %w", err)
 	}
 	if !tokenPayResp.Success {
-		return nil, fmt.Errorf("TokenPay create order failed: %s", tokenPayResp.Message)
+		message := strings.TrimSpace(tokenPayResp.Message)
+		if message == "" {
+			message = fmt.Sprintf("gateway response (HTTP %d): %s", resp.StatusCode, strings.TrimSpace(string(respData)))
+		}
+		return nil, fmt.Errorf("TokenPay create order failed: %s", message)
 	}
 
 	tokenPayResp.OrderID = orderID
@@ -1250,6 +1276,12 @@ func (s *PaymentService) resolveTokenPayPaidAmount(order *dtos.PaymentOrder, not
 	localCurrency := "IDR"
 	if order != nil && strings.HasPrefix(strings.ToUpper(order.DstCode), "USDT_PHP_") {
 		localCurrency = "PHP"
+	}
+	if order != nil && strings.HasPrefix(strings.ToUpper(order.DstCode), "USDT_USD_") {
+		localCurrency = "USD"
+	}
+	if localCurrency == "USD" {
+		return pickClosestPositiveAmount(order.Amount, notify.ActualAmount, notify.Amount)
 	}
 	exchangeRate, err := models.GetInstance().GetExchangeRate(localCurrency)
 	if err != nil || exchangeRate <= 0 {
@@ -1435,7 +1467,7 @@ func (s *PaymentService) CreateWithdrawOrder(ctx context.Context, userID uint64,
 		if user.Balance < balanceDeductionUSD {
 			return errors.New("insufficient balance")
 		}
-		autoSubmit = shouldAutoSubmitWithdraw(balanceDeductionUSD)
+		autoSubmit = methodCfg.Channel != "manual" && shouldAutoSubmitWithdraw(balanceDeductionUSD)
 
 		updateResult := tx.Model(&user).
 			Where("balance >= ?", balanceDeductionUSD).

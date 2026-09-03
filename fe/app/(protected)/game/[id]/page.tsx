@@ -26,7 +26,16 @@ export default function GamePage() {
   }, [params.id, router])
 
   const handleBackToHome = () => {
-    router.push("/home")
+    // Return to the existing lobby entry so its loaded state is preserved.
+    // Fall back to /home when this page was opened directly without history.
+    const cameFromLobby = typeof window !== "undefined"
+      && sessionStorage.getItem("game_return_to_lobby") === "1"
+    if (cameFromLobby) {
+      sessionStorage.removeItem("game_return_to_lobby")
+      router.back()
+    } else {
+      router.push("/home")
+    }
   }
 
   if (!game) {

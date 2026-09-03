@@ -1,0 +1,10 @@
+# Never commit real secrets. The previously shared token must be revoked.
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_WEBHOOK_SECRET=
+TELEGRAM_STARS_PER_USD=50
+TELEGRAM_STARS_ENABLED=true
+
+# Register after deployment:
+# POST https://api.telegram.org/bot<TOKEN>/setWebhook
+# url=https://<API_DOMAIN>/payments/telegram-stars/webhook
+# secret_token=<TELEGRAM_WEBHOOK_SECRET>

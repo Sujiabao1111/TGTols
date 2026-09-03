@@ -21,7 +21,9 @@ const NewUserRechargePage: React.FC = () => {
   const { status, loading } = useNewUserRechargeStatus()
 
   const isIndonesian = language === "id"
-  const isChinese = language === "cn"
+  // Chinese strings in this legacy activity were mojibake; fall back to English until translated.
+  const isChinese = false
+  const isRussian = language === "ru"
 
   const tiers = status?.tiers || [
     {
@@ -93,6 +95,26 @@ const NewUserRechargePage: React.FC = () => {
           unlocked: "已完成",
           locked: "未解锁",
         }
+        : isRussian
+          ? {
+            titleTop: "Пополнение",
+            titleBottom: "Бонус",
+            summary: "Чем больше вы пополняете счёт, тем больше бонусов получаете.",
+            activityPeriod: "Эксклюзив для новых пользователей",
+            rewardTitle: "Дополнительные бонусы за первые 4 депозита",
+            bonusLabel: "Бонус за депозит",
+            restrictionsTitle: "Правила акции",
+            restrictionFund: "Дополнительный бонус за депозит нельзя вывести напрямую.",
+            restrictionMinDeposit: "Бонус доступен только для одного депозита от 5U.",
+            restrictionUnlock: "Каждый этап открывается после завершения предыдущего депозита.",
+            completed: "Все 4 бонусных этапа разблокированы.",
+            depositNow: "Пополнить снова и получить больше наград",
+            stageLabel: "Депозит",
+            stageNames: ["Первый", "Второй", "Третий", "Четвёртый"],
+            current: "В процессе",
+            unlocked: "Завершено",
+            locked: "Заблокировано",
+          }
         : isIndonesian
           ? {
             titleTop: "Isi Ulang",
@@ -132,7 +154,7 @@ const NewUserRechargePage: React.FC = () => {
             unlocked: "Completed",
             locked: "Locked",
           },
-    [isChinese, isIndonesian],
+    [isChinese, isIndonesian, isRussian],
   )
 
   if (loading) {
@@ -140,7 +162,7 @@ const NewUserRechargePage: React.FC = () => {
       <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(255,193,59,0.12),_#060606_34%,_#020202_72%)] px-4">
         <div className="flex items-center gap-3 rounded-2xl border border-lucky-gold/20 bg-black/40 px-5 py-4 text-lucky-gold">
           <Loader2 className="h-5 w-5 animate-spin" />
-          <span>Loading activity...</span>
+          <span>{isRussian ? "Загрузка акции..." : isIndonesian ? "Memuat aktivitas..." : "Loading activity..."}</span>
         </div>
       </div>
     )
@@ -220,7 +242,7 @@ const NewUserRechargePage: React.FC = () => {
                               isLocked ? "text-[#b9b9b9]" : "text-[#ffd36b]"
                             }`}
                           >
-                            STAGE {tier.day}
+                            {isRussian ? `ЭТАП ${tier.day}` : `STAGE ${tier.day}`}
                           </p>
                           <div
                             className={`mt-0 text-[clamp(2.05rem,8.5vw,4.4rem)] font-black leading-[0.8] tracking-[-0.06em] ${
@@ -230,14 +252,14 @@ const NewUserRechargePage: React.FC = () => {
                             {bonusPercent}%
                           </div>
                           <div className="text-[clamp(1.2rem,4.9vw,2.5rem)] font-black uppercase leading-[0.8] tracking-[-0.03em] text-white">
-                            BONUS
+                            {isRussian ? "БОНУС" : "BONUS"}
                           </div>
                           <p
                             className={`mt-0 text-[0.95rem] font-medium leading-tight sm:text-base ${
                               isLocked ? "text-[#d0d0d0]" : "text-white"
                             }`}
                           >
-                            {DEPOSIT_STAGE_NAMES[index] || `Deposit ${tier.day}`}
+                            {isRussian ? (text.stageNames[index] || `Депозит ${tier.day}`) : (DEPOSIT_STAGE_NAMES[index] || `Deposit ${tier.day}`)}
                           </p>
                         </div>
 

@@ -24,11 +24,17 @@ type User struct {
 	TotalDeposit  float64 `gorm:"type:decimal(15,2);default:0.00" json:"total_deposit"`  // 累计充值
 	TotalWithdraw float64 `gorm:"type:decimal(15,2);default:0.00" json:"total_withdraw"` // 累计提现
 
-	Status         int       `gorm:"default:1;comment:1:正常 0:禁用" json:"status"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
-	RegisterIP     string    `gorm:"size:64;default:''" json:"register_ip"`
-	RegisterDomain string    `gorm:"size:255;default:'';index:idx_register_domain" json:"register_domain"`
+	Status            int        `gorm:"default:1;comment:1:正常 0:禁用" json:"status"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
+	RegisterIP        string     `gorm:"size:64;default:''" json:"register_ip"`
+	RegisterDomain    string     `gorm:"size:255;default:'';index:idx_register_domain" json:"register_domain"`
+	TelegramUserID    string     `gorm:"size:32;default:null;uniqueIndex:idx_user_telegram_id" json:"telegram_user_id,omitempty"`
+	TelegramUsername  string     `gorm:"size:64;default:''" json:"telegram_username,omitempty"`
+	TelegramFirstName string     `gorm:"size:128;default:''" json:"telegram_first_name,omitempty"`
+	TelegramLastName  string     `gorm:"size:128;default:''" json:"telegram_last_name,omitempty"`
+	TelegramPhotoURL  string     `gorm:"size:512;default:''" json:"telegram_photo_url,omitempty"`
+	TelegramBoundAt   *time.Time `json:"telegram_bound_at,omitempty"`
 }
 
 // VipConfig VIP等级配置

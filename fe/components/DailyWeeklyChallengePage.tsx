@@ -49,11 +49,20 @@ const DailyWeeklyChallengePage: React.FC = () => {
   const router = useRouter()
   const { language } = useLanguage()
   const isIndonesian = language === "id"
+  const isRussian = language === "ru"
   const currencyCode = isIndonesian ? "IDR" : "PHP"
 
   const text = useMemo(
     () =>
-      isIndonesian
+      isRussian
+        ? {
+            loading: "Загрузка акции...", dailyTitle: "Ежедневное испытание", weeklyTitle: "Еженедельное испытание",
+            dailyTaskLabel: "Ежедневно", weeklyTaskLabel: "Еженедельно", dailyReset: "Сброс ежедневно в 00:00 UTC+8",
+            weeklyReset: "Сброс каждый понедельник в 00:00 UTC+8", betLabel: "Ставка", rewardLabel: "Награда", refresh: "Обновить",
+            rulesTitle: "Правила акции", rules: ["Учитываются только действительные ставки на спорт и киберспорт.", "После выполнения награда поступает на заблокированный бонусный баланс.", "Перед выводом заблокированный баланс должен выполнить требования по обороту.", "Платформа может отменить награду при подозрительной активности."],
+            goAlt: "Выполнить", claimAlt: "Получить награду", claimedAlt: "Получено", footerHint: "Все цели и награды указаны в U.",
+          }
+        : isIndonesian
         ? {
             loading: "Memuat aktivitas...",
             dailyTitle: "Tantangan Harian",
@@ -100,7 +109,7 @@ const DailyWeeklyChallengePage: React.FC = () => {
             claimedAlt: "Claimed",
             footerHint: "All target and reward amounts on this page are displayed in U.",
           },
-    [isIndonesian],
+    [isIndonesian, isRussian],
   )
 
   const [status, setStatus] = useState<DailyWeeklyChallengeStatus | null>(null)

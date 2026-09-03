@@ -58,6 +58,14 @@ export interface CreatePaymentResponse {
   expired_at?: string
 }
 
+export interface TelegramStarsOrderResponse {
+  order_id: string
+  invoice_url: string
+  amount: number
+  stars_amount: number
+  status: number
+}
+
 export interface CreateWithdrawRequest {
   amount: number
   type: "bankcard" | "ewallet"
@@ -103,6 +111,17 @@ export interface WithdrawMethodsResponse {
 }
 
 const fallbackPaymentMethods: PaymentMethod[] = [
+  {
+    code: "TG_STARS",
+    name: "Telegram Stars",
+    type: "channel",
+    min_amount: 1,
+    max_amount: 100000,
+    enabled: false,
+    currency: "XTR",
+    channel: "telegram",
+    description: "Pay securely with Telegram Stars",
+  },
   {
     code: "GCASH_QR",
     name: "GCash QR",
@@ -242,6 +261,29 @@ const fallbackWithdrawMethods: WithdrawMethod[] = [
 ]
 
 export const paymentService = {
+  async getTonRate(): Promise<number> {
+    const response = await fetchWithAuth(apiUrl("/payments/ton/rate"))
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error || "Failed to fetch TON rate")
+    const rate = Number(data.usd_per_ton)
+    if (!(rate > 0)) throw new Error("Invalid TON rate")
+    return rate
+  },
+  async createTonOrder(amount: number): Promise<TonOrderResponse> {
+    const response = await fetchWithAuth(apiUrl("/payments/ton/order"), { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({amount}) })
+    const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "Failed to create TON order"); return data
+  },
+
+  async createTelegramStarsOrder(amount: number, initData: string): Promise<TelegramStarsOrderResponse> {
+    const response = await fetchWithAuth(apiUrl("/payments/telegram-stars/order"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount, init_data: initData }),
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error || "Failed to create Telegram Stars invoice")
+    return data
+  },
   async getPaymentMethods(): Promise<PaymentMethod[]> {
     try {
       const response = await fetch(apiUrl("/payments/methods"), {
@@ -454,6 +496,8 @@ export const paymentService = {
   },
 }
 
+export interface TonOrderResponse { order_id:string; wallet_addr:string; amount_usd:number; amount_ton:number; nano_ton:number; comment:string; expires_at:string }
+
 export interface RedeemVoucherRequest {
   amount: number
   voucher_code: string
@@ -485,7 +529,7 @@ export interface CreateTokenPayOrderRequest {
   amount: number
   type: string
   dst_code: string
-  currency: "IDR" | "PHP"
+  currency: "USD" | "IDR" | "PHP"
   callback_url?: string
   chain_type: "ETH" | "TRX"
 }

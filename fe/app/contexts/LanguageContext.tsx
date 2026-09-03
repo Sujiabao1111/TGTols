@@ -11,29 +11,14 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-const DEFAULT_LANGUAGE: Language = "en"
+const DEFAULT_LANGUAGE: Language = "ru"
 const BROWSER_LANGUAGE_KEY = "language"
-const SUPPORTED_LANGUAGES: Language[] = ["en", "id"]
-const ID_DEFAULT_HOSTNAMES = new Set(["ppnetpp.com", "www.ppnetpp.com"])
-const EN_DEFAULT_HOSTNAMES = new Set([
-  "ppnetpp.net",
-  "www.ppnetpp.net",
-  "ppbetpp.tech",
-  "www.ppbetpp.tech",
-  "ppnet11.com",
-  "www.ppnet11.com",
-  "ppnet22.com",
-  "www.ppnet22.com",
-  "ppnet33.com",
-  "www.ppnet33.com",
-  "ppnet44.com",
-  "www.ppnet44.com",
-  "ppnet55.com",
-  "www.ppnet55.com",
-])
+const SUPPORTED_LANGUAGES: Language[] = ["en", "ru"]
 
 function normalizeLanguage(lang?: string | null): Language {
-  return lang === "id" ? "id" : DEFAULT_LANGUAGE
+  if (lang === "ru") return "ru"
+  if (lang === "en") return "en"
+  return DEFAULT_LANGUAGE
 }
 
 function getBrowserLanguage(): Language {
@@ -44,27 +29,8 @@ function getBrowserLanguage(): Language {
   const rawLang = navigator.languages?.[0] || navigator.language || DEFAULT_LANGUAGE
   const normalizedLang = rawLang.toLowerCase().trim()
 
-  if (normalizedLang === "id" || normalizedLang.startsWith("id-")) {
-    return "id"
-  }
-
+  if (normalizedLang === "ru" || normalizedLang.startsWith("ru-")) return "ru"
   return DEFAULT_LANGUAGE
-}
-
-function getHostnameDefaultLanguage(): Language | null {
-  if (typeof window === "undefined") {
-    return null
-  }
-
-  const hostname = window.location.hostname.toLowerCase()
-  if (ID_DEFAULT_HOSTNAMES.has(hostname)) {
-    return "id"
-  }
-  if (EN_DEFAULT_HOSTNAMES.has(hostname)) {
-    return "en"
-  }
-
-  return null
 }
 
 function getStoredLanguage(): Language | null {
@@ -81,7 +47,7 @@ function getStoredLanguage(): Language | null {
 }
 
 function getInitialLanguage(): Language {
-  return getHostnameDefaultLanguage() || getStoredLanguage() || getBrowserLanguage()
+  return getStoredLanguage() || getBrowserLanguage()
 }
 
 

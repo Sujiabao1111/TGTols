@@ -38,7 +38,7 @@ func TestTokenPayCreateOrder(c *fiber.Ctx) error {
 		"ActualAmount": actualAmount,                      // 法币金额 (保留两位小数字符串)
 		"Currency":     currency,                          // 币种: USDT_TRC20, USDT_ERC20, EVM_ETH_USDT_ERC20 等
 		"NotifyUrl":    tokenPayCfg.NotifyURL,             // 异步通知URL
-		"RedirectUrl":  "https://gg.vazhenina.com/wallet", // 支付完成后跳转URL
+		"RedirectUrl":  "https://gg.ppnet55.com/wallet", // 支付完成后跳转URL
 	}
 
 	// 生成签名

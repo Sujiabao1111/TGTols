@@ -27,6 +27,7 @@ func InitRouteTables(r *fiber.App) {
 	r.Post("/getTokenTest", GetJwtForTest)
 
 	r.Post("/api/login", LoginHandler)
+	r.Post("/api/auth/telegram", TelegramLoginHandler)
 	r.Post("/api/regtest", Registertest)
 	r.Post("/api/reg", Register)
 	r.Post("/api/domain-click", RecordDomainClick)
@@ -40,6 +41,12 @@ func InitRouteTables(r *fiber.App) {
 	r.Get("/payments/methods", paymentHandler.GetPaymentMethods)
 	r.Get("/withdraw/methods", paymentHandler.GetWithdrawMethods)
 	r.Post("/payments/tokenpay/notify", paymentHandler.HandleTokenPayNotify)
+	r.Post("/payments/telegram-stars/webhook", paymentHandler.HandleTelegramStarsWebhook)
+	// Keep an /api-prefixed alias for deployments whose reverse proxy exposes
+	// backend callbacks below the /api prefix.
+	r.Post("/api/payments/telegram-stars/webhook", paymentHandler.HandleTelegramStarsWebhook)
+	r.Post("/payments/telegram-stars/refund", paymentHandler.RefundTelegramStarsPayment)
+	r.Get("/payments/telegram-stars/transactions", paymentHandler.GetTelegramStarsTransactions)
 
 	if isDevMode() {
 		r.Get("/test/tokenpay/config", TestTokenPayGetConfig)
@@ -118,11 +125,15 @@ func InitRouteTablesWithJWT(r *fiber.App) {
 
 	paymentHandler := NewPaymentHandler()
 	r.Post("/payments/order", paymentHandler.CreatePaymentOrder)
+	r.Post("/payments/ton/order", paymentHandler.CreateTonOrder)
+	r.Get("/payments/ton/rate", paymentHandler.GetTonRate)
+	r.Post("/payments/ton/confirm", paymentHandler.ConfirmTonOrder)
 	r.Get("/payments/order/:orderId", paymentHandler.GetPaymentStatus)
 	r.Get("/payments/orders", paymentHandler.GetUserPayments)
 	r.Get("/payments/voucher/config", paymentHandler.GetVoucherConfig)
 	r.Post("/payments/voucher/redeem", paymentHandler.RedeemVoucher)
 	r.Post("/payments/tokenpay/order", paymentHandler.CreateTokenPayOrder)
+	r.Post("/payments/telegram-stars/order", paymentHandler.CreateTelegramStarsOrder)
 
 	r.Post("/withdraw", paymentHandler.CreateWithdrawOrder)
 }

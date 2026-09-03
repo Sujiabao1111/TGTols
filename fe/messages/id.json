@@ -4,6 +4,6 @@
   },
   "LocaleSwitcher": {
     "label": "Ubah bahasa",
-    "locale": "{locale, select, en {English} id {Indonesian} other {Unknown}}"
+    "locale": "{locale, select, en {English} id {Indonesian} ru {Russian} other {Unknown}}"
   }
 }

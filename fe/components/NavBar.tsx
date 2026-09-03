@@ -96,7 +96,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, isLoggedIn, us
 
   const languages: { code: Language; label: string; flag: string }[] = [
     { code: "en", label: "English", flag: "🇺🇸" },
-    { code: "id", label: "Bahasa Indonesia", flag: "🇮🇩" },
+    { code: "ru", label: "Русский", flag: "🇷🇺" },
   ]
 
   const currentLangObj = languages.find((l) => l.code === language) || languages[0]

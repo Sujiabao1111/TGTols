@@ -165,6 +165,21 @@ export const notifyGameTransactionsUpdated = () => {
 }
 
 export const authService = {
+
+  async telegramLogin(initData: string, startParam = ""): Promise<LoginResponse> {
+    const response = await fetch(apiUrl("/api/auth/telegram"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ init_data: initData, start_param: startParam, site_domain: typeof window !== "undefined" ? window.location.hostname : "" }),
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok || !data.token) {
+      const message = data.message || data.error || "Telegram login failed"
+      throw new Error(`Telegram login failed (HTTP ${response.status}): ${message}`)
+    }
+    localStorage.setItem("token", data.token)
+    return data
+  },
   async recordDomainClick(): Promise<void> {
     if (typeof window === "undefined") return
     const day = new Date().toLocaleDateString("en-CA")

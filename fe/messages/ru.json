@@ -1,9 +1,7 @@
-{
-  "HomePage": {
-    "title": "рандомные!"
-  },
+﻿{
+  "HomePage": { "title": "Привет, мир!" },
   "LocaleSwitcher": {
-    "label": "Change language ru",
-    "locale": "{locale, select, ru {Russian} en {English} cn {Chinese} id {Indonesian} ph {Filipino} other {Unknown}}"
+    "label": "Изменить язык",
+    "locale": "{locale, select, ru {Русский} en {Английский} id {Индонезийский} other {Неизвестный}}"
   }
 }

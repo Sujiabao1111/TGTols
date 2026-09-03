@@ -67,7 +67,7 @@ order.DstCode = "TOKENPAY_ETH" // 或 "TOKENPAY_TRX"
         "base_url": "https://pay-test.targeted.work/",
         "merchant_id": "10036",
         "secret_key": "xxx",
-        "notify_url": "https://gg.vazhenina.com/api/payments/notify",
+        "notify_url": "https://gg.ppnet55.com/api/payments/notify",
         "return_url": "https://www.yourdomain.com/wallet",
         // 新增 TokenPay 配置
         "tokenpay": {

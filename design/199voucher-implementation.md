@@ -28,7 +28,7 @@
         "base_url": "https://pay-test.targeted.work/",
         "merchant_id": "10036",
         "secret_key": "150kz9esh1s2f793abb8l0e4mjot3r2c",
-        "notify_url": "https://gg.vazhenina.com/api/payments/notify",
+        "notify_url": "https://gg.ppnet55.com/api/payments/notify",
         "return_url": "https://www.yourdomain.com/wallet"
     },
     "vocher": "https://www.188topup.com"

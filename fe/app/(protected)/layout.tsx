@@ -11,7 +11,7 @@ import { useGame } from "@/app/contexts/GameContext"
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { isLoggedIn, checkAuth } = useAuth()
+  const { isLoggedIn, isAuthReady, checkAuth } = useAuth()
   const { navigate, getCurrentView } = useNavigation()
   const { userBalance, fetchUserBalance } = useUser()
   const { gameTypes, selectedGameType, sortType, setSelectedGameType, setSortType, clearFilters } = useGame()
@@ -30,18 +30,18 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
     // Client-side auth check
     if (typeof window !== "undefined") {
       const hasAuth = checkAuth()
-      if (!hasAuth && !isLoggedIn) {
+      if (isAuthReady && !hasAuth && !isLoggedIn) {
         router.push("/login")
       }
     }
-  }, [isLoggedIn, checkAuth, isPublicActivityPath, router])
+  }, [isLoggedIn, isAuthReady, checkAuth, isPublicActivityPath, router])
 
   // 等待客户端挂载，避免水合不匹配
   if (!mounted) {
     return <div className="min-h-screen bg-lucky-dark" />
   }
 
-  if (!isLoggedIn && !isPublicActivityPath) {
+  if (!isAuthReady || (!isLoggedIn && !isPublicActivityPath)) {
     return null // or loading spinner
   }
 

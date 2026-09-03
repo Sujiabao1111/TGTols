@@ -10,7 +10,7 @@
 #   1. 确保已安装 Docker + Docker Compose
 #   2. 复制 .env.docker 为 .env，填入数据库和 Clerk 配置
 #   3. 在项目根目录执行: docker-compose up -d
-#   4. 访问 http://localhost:3000
+#   4. 访问 http://localhost:5000
 #
 # 常用命令：
 #   docker-compose ps          # 查看运行状态
@@ -95,7 +95,7 @@ services:
     container_name: tols-fe
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "5000:5000"
     environment:
       # Clerk 私钥（运行时环境变量，必须替换为你的真实 key）
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}

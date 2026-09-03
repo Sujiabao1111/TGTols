@@ -4,7 +4,7 @@ set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 FE_DIR="${FE_DIR:-$ROOT_DIR/fe}"
-PORT="${PORT:-3000}"
+PORT="${PORT:-5000}"
 PID_FILE="${PID_FILE:-$FE_DIR/.next-start.pid}"
 LOG_FILE="${LOG_FILE:-$FE_DIR/fe.log}"
 START_CMD="${START_CMD:-node ./node_modules/next/dist/bin/next start}"

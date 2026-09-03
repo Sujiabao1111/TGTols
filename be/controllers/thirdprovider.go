@@ -1906,7 +1906,7 @@ func GetUserInfo(c *fiber.Ctx) error {
 	var user dtos.User
 	// 使用 Select 指定字段，避免查出不必要的数据
 	if err := models.GetInstance().DbInstance.Model(&dtos.User{}).
-		Select("id, username, invite_code, balance, vip_level, level, total_deposit").
+		Select("id, username, telegram_username, telegram_first_name, telegram_last_name, invite_code, balance, vip_level, level, total_deposit").
 		First(&user, userId).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -1929,12 +1929,16 @@ func GetUserInfo(c *fiber.Ctx) error {
 	depositWagerMultiplier, rewardWagerMultiplier := services.GetActivityService().GetActivityWagerMultipliers(c.Context())
 
 	// 3. 返回数据
+	displayName := user.Username
+	if user.TelegramFirstName != "" || user.TelegramLastName != "" {
+		displayName = strings.TrimSpace(user.TelegramFirstName + " " + user.TelegramLastName)
+	}
 	return c.JSON(fiber.Map{
 		"code":    0,
 		"message": "success",
 		"data": fiber.Map{
 			"uid":                      user.ID,         // 用户ID
-			"username":                 user.Username,   // 用户名
+			"username":                 displayName,     // Telegram 昵称优先显示
 			"invite_code":              user.InviteCode, // 邀请码
 			"balance":                  user.Balance,    // 当前本地余额
 			"vip_level":                user.VipLevel,   // VIP等级

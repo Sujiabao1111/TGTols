@@ -163,7 +163,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, onSetWalletTab, o
       </div>
       <button
         onClick={onLogout}
-        className="w-full mt-8 py-3 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:border-white/30 transition-colors flex items-center justify-center gap-2"
+        className="hidden w-full mt-8 py-3 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:border-white/30 transition-colors items-center justify-center gap-2"
       >
         <LogOut size={16} /> {t("profile.logout")}
       </button>

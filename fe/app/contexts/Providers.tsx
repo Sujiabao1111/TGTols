@@ -36,6 +36,7 @@ function DesktopLaunchRewardClaimer() {
 }
 
 export function Providers({ children }: { children: ReactNode }) {
+  const twaReturnUrl = process.env.NEXT_PUBLIC_TWA_RETURN_URL || "https://t.me/ppnetbet_bot/PPNetApp"
   useEffect(() => {
     registerPwaServiceWorker()
     getLaunchSource()
@@ -43,19 +44,26 @@ export function Providers({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <TonConnectUIProvider manifestUrl="https://gg.ppnet55.com/tonconnect-manifest.json">
-    <LanguageProvider>
-      <AuthProvider>
-        <UserProvider>
-          <GameProvider>
-            <DesktopLaunchRewardClaimer />
-            {children}
-            <AddDesktopInsuranceDialog />
-            <Toaster position="top-center" richColors />
-          </GameProvider>
-        </UserProvider>
-      </AuthProvider>
-    </LanguageProvider>
+    <TonConnectUIProvider
+      manifestUrl="https://gg.ppnet55.com/tg/tonconnect-manifest.json"
+      actionsConfiguration={{
+        returnStrategy: "back",
+        ...(twaReturnUrl ? { twaReturnUrl: twaReturnUrl as `${string}://${string}` } : {}),
+        notifications: ["before", "success", "error"],
+      }}
+    >
+      <LanguageProvider>
+        <AuthProvider>
+          <UserProvider>
+            <GameProvider>
+              <DesktopLaunchRewardClaimer />
+              {children}
+              <AddDesktopInsuranceDialog />
+              <Toaster position="top-center" richColors />
+            </GameProvider>
+          </UserProvider>
+        </AuthProvider>
+      </LanguageProvider>
     </TonConnectUIProvider>
   )
 }

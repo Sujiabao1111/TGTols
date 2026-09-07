@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react"
 import { WalletRecord, paymentService } from "@/services/payment"
 import { useLanguage } from "@/app/contexts/LanguageContext"
 import { Loader2, ArrowDownLeft, ArrowUpRight, Gift, Search } from "lucide-react"
-import { getCurrencyByPaymentCode } from "./paymentRegion"
 
 type WalletRecordType = "deposit" | "withdraw" | "bonus"
 
@@ -140,14 +139,9 @@ export function PaymentHistory() {
     return recordType === "withdraw" ? "-" : "+"
   }
 
-  const getRecordCurrency = (record: WalletRecord) => {
-    if (getNormalizedRecordType(record) === "bonus") {
-      return "U"
-    }
-    if (record.currency && record.currency !== "USD") {
-      return record.currency
-    }
-    return getCurrencyByPaymentCode(record.dst_code || "")
+  const getRecordCurrency = () => {
+    // Platform wallet amounts are displayed in U regardless of the funding channel.
+    return "U"
   }
 
   const getDateLocale = () => {
@@ -261,7 +255,7 @@ export function PaymentHistory() {
           filteredRecords.map((record) => (
             (() => {
               const recordType = getNormalizedRecordType(record)
-              const currency = getRecordCurrency(record)
+              const currency = getRecordCurrency()
               const icon = getRecordIcon(recordType)
               const reference = record.order_id || record.reference_id
 

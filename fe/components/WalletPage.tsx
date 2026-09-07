@@ -1,7 +1,8 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
-import { HelpCircle, History } from "lucide-react"
+import { HelpCircle, History, ChevronRight } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { WalletTab } from "../app/mocks/types"
 import { useLanguage } from "../app/contexts/LanguageContext"
 import { useUser } from "@/app/contexts/UserContext"
@@ -15,6 +16,7 @@ import { useToast } from "@/hooks/use-toast"
 import { TokenPayModal } from "./payment/TokenPayModal"
 import { TonConnectButton, useTonConnectUI } from "@tonconnect/ui-react"
 import { beginCell } from "@ton/core"
+import { useNewUserRechargeStatus } from "@/hooks/useNewUserRechargeStatus"
 
 interface WalletPageProps {
   activeTab: WalletTab
@@ -52,7 +54,7 @@ const WalletPage: React.FC<WalletPageProps> = ({ activeTab, onTabChange }) => {
     fetchUserBalance,
     isUserInfoLoaded,
   } = useUser()
-  const { formatFromUSDTo, formatUSD } = useExchangeRate()
+  const { formatUSD } = useExchangeRate()
   const [balanceLoading, setBalanceLoading] = useState(!isUserInfoLoaded)
   const [insuranceCouponCount, setInsuranceCouponCount] = useState(0)
   const [showInsuranceInfo, setShowInsuranceInfo] = useState(false)
@@ -65,6 +67,8 @@ const WalletPage: React.FC<WalletPageProps> = ({ activeTab, onTabChange }) => {
   const [tonAmount, setTonAmount] = useState("5")
   const [tonPayLoading, setTonPayLoading] = useState(false)
   const [tonRate, setTonRate] = useState(5)
+  const [tonWithdrawConditionsEnabled, setTonWithdrawConditionsEnabled] = useState(true)
+  const [tonMinWithdrawAmount, setTonMinWithdrawAmount] = useState(10)
   const [usdtAmount, setUsdtAmount] = useState("10")
   const [usdtOrder, setUsdtOrder] = useState<{ pay_address: string; pay_amount: string; expired_at: number } | null>(null)
   const [usdtLoading, setUsdtLoading] = useState(false)
@@ -72,16 +76,24 @@ const WalletPage: React.FC<WalletPageProps> = ({ activeTab, onTabChange }) => {
   const [tonWithdrawAmount, setTonWithdrawAmount] = useState("")
   const [tonWithdrawLoading, setTonWithdrawLoading] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
+  const { status: newUserRechargeStatus } = useNewUserRechargeStatus(activeTab === "deposit")
+  const newUserRechargeTotal = newUserRechargeStatus?.tiers.length || 4
+  const newUserRechargeProgress = Math.min(newUserRechargeStatus?.progress_count || 0, newUserRechargeTotal)
   const [tonConnectUI] = useTonConnectUI()
   useEffect(() => {
-    if (depositMethod !== "ton") return
-    paymentService.getTonRate().then(setTonRate).catch(() => undefined)
-  }, [depositMethod])
+    if (depositMethod !== "ton" && activeTab !== "withdraw") return
+    paymentService.getTonConfig().then((config) => {
+      setTonRate(config.usdPerTon)
+      setTonWithdrawConditionsEnabled(config.withdrawConditionsEnabled)
+      setTonMinWithdrawAmount(config.minWithdrawAmountUSD)
+    }).catch(() => undefined)
+  }, [depositMethod, activeTab])
   const strictRegionOnly = forcedRegion !== null
   const loading = !isUserInfoLoaded && balanceLoading
-  const balanceCurrency = selectedRegion === "ID" ? "IDR" : "PHP"
   const primaryBalanceUSD = activeTab === "withdraw" ? withdrawableBalance : userBalance
   const primaryBalanceLabel = activeTab === "withdraw" ? t("wallet.available_withdraw") : t("wallet.balance_title")
+  const tonAvailableBalance = tonWithdrawConditionsEnabled ? withdrawableBalance : userBalance
 
   useEffect(() => {
     if (isUserInfoLoaded || !balanceLoading) {
@@ -216,12 +228,20 @@ const WalletPage: React.FC<WalletPageProps> = ({ activeTab, onTabChange }) => {
   const handleTonPay = async () => {
     const amount = Number(tonAmount)
     if (!Number.isFinite(amount) || amount <= 0) return
+    await tonConnectUI.connectionRestored
+    if (!tonConnectUI.connected || !tonConnectUI.account?.address) {
+      toast({ title: "Connect your TON wallet first", variant: "destructive" })
+      return
+    }
     setTonPayLoading(true)
     try {
-      const order = await paymentService.createTonOrder(amount)
+      const order = await paymentService.createTonOrder(amount, tonConnectUI.account.address)
       const payload = beginCell().storeUint(0, 32).storeStringTail(order.comment).endCell().toBoc().toString("base64")
-      await tonConnectUI.sendTransaction({ validUntil: Math.floor(Date.now() / 1000) + 600, messages: [{ address: order.wallet_addr, amount: String(order.nano_ton), payload }] })
+      const txResult = await tonConnectUI.sendTransaction({ validUntil: Math.min(Math.floor(Date.parse(order.expires_at) / 1000), Math.floor(Date.now() / 1000) + 600), messages: [{ address: order.wallet_addr, amount: String(order.nano_ton), payload }] })
+      void txResult
       toast({ title: "Transaction sent", description: "Waiting for blockchain confirmation." })
+      // TonConnect returns a signed BOC; the backend scanner resolves its chain hash.
+      // Keep polling the order while the scanner validates sender, destination and amount.
       void waitForTonPayment(order.order_id)
     } catch (error) {
       toast({ title: "Gram (TON) payment failed", description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" })
@@ -230,8 +250,11 @@ const WalletPage: React.FC<WalletPageProps> = ({ activeTab, onTabChange }) => {
 
   const handleTONWithdraw = async () => {
     const amount = Number(tonWithdrawAmount)
-    if (!tonAddress.trim() || !Number.isFinite(amount) || amount < 10 || amount > withdrawableBalance) {
-      toast({ title: t("wallet.ton_invalid_title"), description: t("wallet.ton_invalid_desc"), variant: "destructive" })
+    if (!tonAddress.trim() || !Number.isFinite(amount) || amount < tonMinWithdrawAmount || amount > tonAvailableBalance) {
+      const description = tonAvailableBalance <= 0
+        ? `${t("wallet.insufficient_withdrawable_balance")} ${t("wallet.ton_available").replace("{amount}", formatUSD(tonAvailableBalance))}`
+        : t("wallet.ton_invalid_desc")
+      toast({ title: t("wallet.ton_invalid_title"), description, variant: "destructive" })
       return
     }
 
@@ -239,7 +262,7 @@ const WalletPage: React.FC<WalletPageProps> = ({ activeTab, onTabChange }) => {
     try {
       await paymentService.createWithdrawOrder({
         amount,
-        type: "ewallet",
+        type: "crypto",
         dst_code: "TON",
         account: tonAddress.trim(),
         account_name: "TON Wallet",
@@ -290,10 +313,10 @@ const WalletPage: React.FC<WalletPageProps> = ({ activeTab, onTabChange }) => {
     <div className="animate-fade-in">
       {telegramMode ? (
         <div className="space-y-4 rounded-xl border border-[#229ED9]/50 bg-[#229ED9]/10 p-4">
-          <div><h3 className="font-bold text-white">{t("wallet.ton_withdraw_title")}</h3><p className="mt-1 text-xs text-[#8ed8ff]">{t("wallet.ton_available").replace("{amount}", formatUSD(withdrawableBalance))}</p></div>
+          <div><h3 className="font-bold text-white">{t("wallet.ton_withdraw_title")}</h3><p className="mt-1 text-xs text-[#8ed8ff]">{t("wallet.ton_available").replace("{amount}", formatUSD(tonAvailableBalance))}</p></div>
           <div><label className="mb-2 block text-sm text-gray-300">{t("wallet.ton_address")}</label><input value={tonAddress} onChange={(event) => setTonAddress(event.target.value)} className="w-full rounded-xl border border-white/15 bg-black/30 px-4 py-3 text-white outline-none focus:border-[#229ED9]" placeholder={t("wallet.ton_address_placeholder")} /></div>
-          <div><label className="mb-2 block text-sm text-gray-300">{t("wallet.ton_withdraw_amount")}</label><input value={tonWithdrawAmount} onChange={(event) => setTonWithdrawAmount(event.target.value)} type="number" min="10" max={withdrawableBalance} className="w-full rounded-xl border border-white/15 bg-black/30 px-4 py-3 text-white outline-none focus:border-[#229ED9]" placeholder={t("wallet.ton_minimum")} /></div>
-          <button type="button" onClick={handleTONWithdraw} disabled={tonWithdrawLoading || !tonAddress.trim() || !tonWithdrawAmount} className="w-full rounded-xl bg-[#229ED9] py-3 font-bold text-white disabled:opacity-50">{tonWithdrawLoading ? t("wallet.ton_submitting") : t("wallet.ton_submit")}</button>
+          <div><label className="mb-2 block text-sm text-gray-300">{t("wallet.ton_withdraw_amount")}</label><input value={tonWithdrawAmount} onChange={(event) => setTonWithdrawAmount(event.target.value)} type="number" min={tonMinWithdrawAmount} max={tonAvailableBalance} className="w-full rounded-xl border border-white/15 bg-black/30 px-4 py-3 text-white outline-none focus:border-[#229ED9]" placeholder={`Minimum ${tonMinWithdrawAmount} U`} />{Number(tonWithdrawAmount) > 0 && tonRate > 0 ? <p className="mt-2 text-xs text-[#8ed8ff]">≈ {(Number(tonWithdrawAmount) / tonRate).toFixed(4)} TON</p> : null}</div>
+          <button type="button" onClick={handleTONWithdraw} disabled={tonWithdrawLoading || !tonAddress.trim() || !tonWithdrawAmount || tonAvailableBalance < tonMinWithdrawAmount} className="w-full rounded-xl bg-[#229ED9] py-3 font-bold text-white disabled:opacity-50">{tonWithdrawLoading ? t("wallet.ton_submitting") : t("wallet.ton_submit")}</button>
         </div>
       ) : <WithdrawForm
         key={`withdraw-${selectedRegion}`}
@@ -373,7 +396,7 @@ const WalletPage: React.FC<WalletPageProps> = ({ activeTab, onTabChange }) => {
             )}
           </div>
           <div className="text-[11px] text-gray-500 mt-0.5">
-            {activeTab === "withdraw" ? `${t("wallet.balance_title")}: ${formatFromUSDTo(userBalance, balanceCurrency)}` : "USD"}
+            {activeTab === "withdraw" ? `${t("wallet.balance_title")}: ${Number(userBalance || 0).toFixed(2)}U` : "USD"}
           </div>
         </div>
       </div>
@@ -396,6 +419,17 @@ const WalletPage: React.FC<WalletPageProps> = ({ activeTab, onTabChange }) => {
             USDT
           </button>
         </div>
+      )}
+
+      {activeTab === "deposit" && newUserRechargeStatus && !newUserRechargeStatus.hidden && (
+        <button
+          type="button"
+          onClick={() => router.push("/newUserRecharge")}
+          className="mb-4 flex w-full items-center justify-between rounded-lg border border-[#f2b93a]/70 bg-gradient-to-r from-[#f2b93a]/20 via-[#f2b93a]/10 to-transparent px-3 py-2 text-left text-sm font-semibold text-[#ffd36b] shadow-[0_0_14px_rgba(242,185,58,0.18)] transition hover:border-[#ffd36b] hover:bg-[#f2b93a]/25"
+        >
+          <span className="flex items-center gap-2"><span className="animate-pulse">🎁</span>{t("wallet.new_user_recharge_hint")} ({newUserRechargeProgress}/{newUserRechargeTotal})</span>
+          <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+        </button>
       )}
 
       {activeTab === "deposit" && depositMethod === "ton" && (

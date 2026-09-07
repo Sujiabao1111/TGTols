@@ -15,6 +15,10 @@ type DataStatisticsService struct{}
 
 const platformWinLossStartDate = "2026-07-01"
 
+// Recharge overview intentionally excludes legacy/test records before the
+// current accounting period.
+const rechargeStatsStartDate = "2026-09-01 00:00:00"
+
 func (s *DataStatisticsService) GetDataStatistics(ctx context.Context, info exampleReq.DataStatisticsSearch) (model.DataStatisticsResult, error) {
 	start, end, err := parseDataStatisticsRange(info)
 	if err != nil {
@@ -25,10 +29,15 @@ func (s *DataStatisticsService) GetDataStatistics(ctx context.Context, info exam
 	if err = db.Table("users").Count(&result.Overview.TotalRegisteredUsers).Error; err != nil {
 		return result, err
 	}
-	if err = db.Table("payment_orders").Where("status = ? AND paid_at IS NOT NULL", 1).Distinct("user_id").Count(&result.Overview.TotalRechargeUsers).Error; err != nil {
+	// Keep the overview count consistent with recharge amount and daily details:
+	// only transactions that were actually posted to the ledger count as a
+	// successful recharge. Counting payment_orders also includes pending,
+	// expired and duplicate/test orders.
+	if err = db.Raw("SELECT COUNT(*) FROM (SELECT t.user_id FROM transactions t INNER JOIN users u ON u.id = t.user_id WHERE t.type = ? AND t.created_at >= ? GROUP BY t.user_id HAVING SUM(t.amount) > 0) AS recharge_users", 1, rechargeStatsStartDate).
+		Scan(&result.Overview.TotalRechargeUsers).Error; err != nil {
 		return result, err
 	}
-	if err = db.Table("transactions").Where("type = ?", 1).Select("COALESCE(SUM(amount), 0)").Scan(&result.Overview.TotalRechargeAmount).Error; err != nil {
+	if err = db.Table("transactions").Where("type = ? AND created_at >= ?", 1, rechargeStatsStartDate).Select("COALESCE(SUM(amount), 0)").Scan(&result.Overview.TotalRechargeAmount).Error; err != nil {
 		return result, err
 	}
 	if err = db.Table("withdraw_orders wo").Joins("LEFT JOIN transactions tx ON tx.reference_id = wo.order_id AND tx.type = 2").Where("wo.status = ? AND wo.completed_at IS NOT NULL", 1).Select("COALESCE(SUM(CASE WHEN wo.cost > 0 THEN wo.cost ELSE ABS(COALESCE(tx.amount, 0)) END), 0)").Scan(&result.Overview.TotalWithdrawAmount).Error; err != nil {
@@ -89,7 +98,7 @@ func (s *DataStatisticsService) GetDataStatistics(ctx context.Context, info exam
 		Amount float64 `gorm:"column:total_amount"`
 	}
 	var payments []paymentRow
-	if err = db.Table("transactions").Select("DATE_FORMAT(created_at, '%Y-%m-%d') stat_date, COUNT(DISTINCT user_id) user_count, COALESCE(SUM(amount), 0) total_amount").Where("type = ? AND created_at >= ? AND created_at < ?", 1, start, end).Group("DATE(created_at)").Scan(&payments).Error; err != nil {
+	if err = db.Table("transactions").Select("DATE_FORMAT(created_at, '%Y-%m-%d') stat_date, COUNT(DISTINCT user_id) user_count, COALESCE(SUM(amount), 0) total_amount").Where("type = ? AND amount > 0 AND created_at >= ? AND created_at < ?", 1, start, end).Group("DATE(created_at)").Scan(&payments).Error; err != nil {
 		return result, err
 	}
 	for _, row := range payments {

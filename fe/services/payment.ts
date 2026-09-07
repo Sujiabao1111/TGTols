@@ -1,6 +1,18 @@
 import { fetchWithAuth } from "./api"
 import { apiUrl } from "@/lib/api-base-url"
 
+function extractApiError(value: unknown): string {
+  if (typeof value === "string") return value
+  if (!value || typeof value !== "object") return ""
+
+  const data = value as Record<string, unknown>
+  for (const key of ["error", "message", "detail"]) {
+    const message = extractApiError(data[key])
+    if (message) return message
+  }
+  return ""
+}
+
 export interface PaymentMethod {
   code: string
   name: string
@@ -261,17 +273,31 @@ const fallbackWithdrawMethods: WithdrawMethod[] = [
 ]
 
 export const paymentService = {
-  async getTonRate(): Promise<number> {
+  async getTonConfig(): Promise<{ usdPerTon: number; withdrawConditionsEnabled: boolean; minWithdrawAmountUSD: number }> {
     const response = await fetchWithAuth(apiUrl("/payments/ton/rate"))
     const data = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(data.error || "Failed to fetch TON rate")
     const rate = Number(data.usd_per_ton)
     if (!(rate > 0)) throw new Error("Invalid TON rate")
-    return rate
+    const minWithdrawAmountUSD = Number(data.min_withdraw_amount_usd)
+    return {
+      usdPerTon: rate,
+      withdrawConditionsEnabled: data.withdraw_conditions_enabled !== false,
+      minWithdrawAmountUSD: minWithdrawAmountUSD > 0 ? minWithdrawAmountUSD : 10,
+    }
   },
-  async createTonOrder(amount: number): Promise<TonOrderResponse> {
-    const response = await fetchWithAuth(apiUrl("/payments/ton/order"), { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({amount}) })
+  async getTonRate(): Promise<number> {
+    return (await this.getTonConfig()).usdPerTon
+  },
+  async createTonOrder(amount: number, walletAddr?: string): Promise<TonOrderResponse> {
+    const response = await fetchWithAuth(apiUrl("/payments/ton/order"), { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({amount, wallet_addr: walletAddr}) })
     const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "Failed to create TON order"); return data
+  },
+  async confirmTonOrder(orderId: string, txHash: string, walletAddr?: string) {
+    const response = await fetchWithAuth(apiUrl("/payments/ton/confirm"), { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({order_id: orderId, tx_hash: txHash, wallet_addr: walletAddr}) })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error || "TON transaction confirmation failed")
+    return data
   },
 
   async createTelegramStarsOrder(amount: number, initData: string): Promise<TelegramStarsOrderResponse> {
@@ -389,8 +415,7 @@ export const paymentService = {
 
         if (rawError) {
           try {
-            const errorData = JSON.parse(rawError) as { error?: string; message?: string }
-            errorMessage = errorData.error || errorData.message || ""
+            errorMessage = extractApiError(JSON.parse(rawError))
           } catch {
             errorMessage = rawError
           }
@@ -401,7 +426,6 @@ export const paymentService = {
 
       return await response.json()
     } catch (error) {
-      console.error("Create withdraw order failed:", error)
       throw error
     }
   },

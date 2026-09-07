@@ -9,6 +9,7 @@
     "redisDb": 0,
     "agentid": "6a277fe0910b614d467099bb",
     "prefix": "plat",
+    "internal_token": "TGTols-BE-BG-2026-7f3a91c8d4e26b50a6c9",
     "agentapi": "https://api.nexapi.xyz/",
     "game_platforms": {
         "m7": {
@@ -63,12 +64,20 @@
         },
         "ton": {
             "wallet_address": "UQACAxEPtsa6A2r-FDRQWWKmD04-v_AK2am-Hx_u7tS5M5hT",
+            "mnemonic":"gain patrol beef improve visa usage provide venture rural orchard fancy ring credit hurt airport enemy unveil mercy summer wasp enrich rapid panel rough",
             "network": "mainnet",
             "enabled": true,
+            
+            "withdraw_conditions_enabled": true,
+            "min_withdraw_amount_usd": 10,
+            "test_mode": false,
+            "test_usd_per_ton": 500,
             "usd_per_ton": 5,
             "rate_url": "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd",
             "rate_ttl_seconds": 60,
             "api_url": "https://toncenter.com/api/v2/getTransactions",
+            "global_config_url": "https://ton-blockchain.github.io/global.config.json",
+            "wallet_version": "v5r1",
             "api_key": "410a85d9b15aefb6a9a282ccbea2a81a69d5c2ce8090fb3254148c1318731b6a"
         }
     },

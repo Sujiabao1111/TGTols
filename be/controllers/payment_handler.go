@@ -46,7 +46,7 @@ func (h *PaymentHandler) CreateTonOrder(c *fiber.Ctx) error {
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(400).JSON(dtos.ErrorResponse{Error: err.Error()})
 	}
-	resp, err := h.paymentService.CreateTonOrder(c.Context(), uid, req.Amount)
+	resp, err := h.paymentService.CreateTonOrder(c.Context(), uid, req.Amount, req.WalletAddr)
 	if err != nil {
 		return c.Status(400).JSON(dtos.ErrorResponse{Error: err.Error()})
 	}
@@ -54,7 +54,16 @@ func (h *PaymentHandler) CreateTonOrder(c *fiber.Ctx) error {
 }
 
 func (h *PaymentHandler) GetTonRate(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{"usd_per_ton": h.paymentService.CurrentTONRate(c.Context())})
+	tonCfg := helpers.GetCfgInstance().Conf.Payment.TON
+	minWithdrawAmount := tonCfg.MinWithdrawAmountUSD
+	if minWithdrawAmount <= 0 {
+		minWithdrawAmount = 10
+	}
+	return c.JSON(fiber.Map{
+		"usd_per_ton":                 h.paymentService.CurrentTONRate(c.Context()),
+		"withdraw_conditions_enabled": tonCfg.WithdrawConditionsEnabled,
+		"min_withdraw_amount_usd":     minWithdrawAmount,
+	})
 }
 
 func (h *PaymentHandler) ConfirmTonOrder(c *fiber.Ctx) error {
@@ -63,13 +72,14 @@ func (h *PaymentHandler) ConfirmTonOrder(c *fiber.Ctx) error {
 		return c.Status(401).JSON(dtos.ErrorResponse{Error: "unauthorized"})
 	}
 	var req struct {
-		OrderID string `json:"order_id"`
-		TxHash  string `json:"tx_hash"`
+		OrderID    string `json:"order_id"`
+		TxHash     string `json:"tx_hash"`
+		WalletAddr string `json:"wallet_addr"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(400).JSON(dtos.ErrorResponse{Error: err.Error()})
 	}
-	if err := h.paymentService.ConfirmTonOrder(c.Context(), uid, req.OrderID, req.TxHash); err != nil {
+	if err := h.paymentService.ConfirmTonOrder(c.Context(), uid, req.OrderID, req.TxHash, req.WalletAddr); err != nil {
 		return c.Status(400).JSON(dtos.ErrorResponse{Error: err.Error()})
 	}
 	return c.JSON(fiber.Map{"status": "paid", "order_id": req.OrderID})
@@ -392,10 +402,11 @@ func (h *PaymentHandler) CreateWithdrawOrder(c *fiber.Ctx) error {
 	if req.Amount <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(dtos.ErrorResponse{Error: "金额必须大于0"})
 	}
-	if req.Account == "" || (req.Type != "crypto" && req.AccountName == "") {
+	isTONWithdraw := strings.EqualFold(strings.TrimSpace(req.DstCode), "TON")
+	if req.Account == "" || (!isTONWithdraw && req.Type != "crypto" && req.AccountName == "") {
 		return c.Status(fiber.StatusBadRequest).JSON(dtos.ErrorResponse{Error: "账户信息不能为空"})
 	}
-	if req.Type != "crypto" && (req.Phone == "" || req.Email == "") {
+	if !isTONWithdraw && req.Type != "crypto" && (req.Phone == "" || req.Email == "") {
 		return c.Status(fiber.StatusBadRequest).JSON(dtos.ErrorResponse{Error: "联系信息不能为空"})
 	}
 

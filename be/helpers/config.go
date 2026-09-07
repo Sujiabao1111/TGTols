@@ -79,14 +79,23 @@ type TelegramConfig struct {
 }
 
 type TONConfig struct {
-	WalletAddress string  `mapstructure:"wallet_address"`
-	Network       string  `mapstructure:"network"`
-	Enabled       bool    `mapstructure:"enabled"`
-	USDPerTON     float64 `mapstructure:"usd_per_ton"`
-	RateURL       string  `mapstructure:"rate_url"`
-	RateTTL       int     `mapstructure:"rate_ttl_seconds"`
-	APIURL        string  `mapstructure:"api_url"`
-	APIKey        string  `mapstructure:"api_key"`
+	WalletAddress string `mapstructure:"wallet_address"`
+	// Mnemonic is the hot-wallet recovery phrase used to sign payouts.
+	// Keep it out of source control and production logs.
+	Mnemonic                  string  `mapstructure:"mnemonic"`
+	Network                   string  `mapstructure:"network"`
+	Enabled                   bool    `mapstructure:"enabled"`
+	WithdrawConditionsEnabled bool    `mapstructure:"withdraw_conditions_enabled"`
+	MinWithdrawAmountUSD      float64 `mapstructure:"min_withdraw_amount_usd"`
+	TestMode                  bool    `mapstructure:"test_mode"`
+	TestUSDPerTON             float64 `mapstructure:"test_usd_per_ton"`
+	USDPerTON                 float64 `mapstructure:"usd_per_ton"`
+	RateURL                   string  `mapstructure:"rate_url"`
+	RateTTL                   int     `mapstructure:"rate_ttl_seconds"`
+	APIURL                    string  `mapstructure:"api_url"`
+	APIKey                    string  `mapstructure:"api_key"`
+	GlobalConfigURL           string  `mapstructure:"global_config_url"`
+	WalletVersion             string  `mapstructure:"wallet_version"`
 }
 
 type QuantixCoreConfig struct {

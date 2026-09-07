@@ -27,6 +27,9 @@ export default async function RootLayout({
     <html lang="ru">
       <body className="antialiased"> 
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
+        <Script id="telegram-webapp-init" strategy="afterInteractive">
+          {`(function(){var w=window.Telegram&&window.Telegram.WebApp;if(w){w.ready();w.expand();}})()`}
+        </Script>
         {/* Lightweight in-app debug console (especially useful inside Telegram WebView). */}
         <ErudaDebug />
         <Script id="debug-fallback" strategy="afterInteractive">

@@ -1,1 +1,7 @@
-{"url":"https://gg.ppnet55.com","name":"PPNET","iconUrl":"https://gg.ppnet55.com/icons/pwa-192.png"}
+{
+    "url": "https://gg.ppnet55.com/",
+    "name": "PPNET",
+    "iconUrl": "https://gg.ppnet55.com/tg/pwa-192.png",
+    "termsOfUseUrl": "https://gg.ppnet55.com/tg/termOfUse.html",
+    "privacyPolicyUrl": "https://gg.ppnet55.com/tg/privacyPolicy.html"
+}

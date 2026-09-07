@@ -33,12 +33,13 @@ type PaymentService struct {
 }
 
 const (
-	withdrawOrderStatusPending     = 0
-	withdrawOrderStatusSuccess     = 1
-	withdrawOrderStatusFailed      = 2
-	withdrawOrderStatusProcessing  = 3
-	minWithdrawAmountUSD           = 10.0
-	autoWithdrawLimitUSD           = 50.0
+	withdrawOrderStatusPending    = 0
+	withdrawOrderStatusSuccess    = 1
+	withdrawOrderStatusFailed     = 2
+	withdrawOrderStatusProcessing = 3
+	minWithdrawAmountUSD          = 10.0
+	// Withdrawals below this USD amount are submitted automatically.
+	autoWithdrawLimitUSD           = 20.0
 	dailyWithdrawLimit             = int64(5)
 	defaultWithdrawFeeConfigKey    = "default"
 	defaultWithdrawPlatformFeeRate = 0.003
@@ -46,6 +47,14 @@ const (
 
 func shouldAutoSubmitWithdraw(amountUSD float64) bool {
 	return amountUSD < autoWithdrawLimitUSD
+}
+
+func tonWithdrawConfig() helpers.TONConfig {
+	cfg := helpers.GetCfgInstance()
+	if cfg == nil || cfg.Conf == nil {
+		return helpers.TONConfig{}
+	}
+	return cfg.Conf.Payment.TON
 }
 
 type withdrawFeeConfigValues struct {
@@ -1414,13 +1423,24 @@ func (s *PaymentService) CreateWithdrawOrder(ctx context.Context, userID uint64,
 	if !methodCfg.Enabled {
 		return nil, errors.New("withdraw method is unavailable")
 	}
-	if req.Amount < methodCfg.MinAmount || req.Amount > methodCfg.MaxAmount {
-		return nil, fmt.Errorf("amount is out of range: %.0f - %.0f %s", methodCfg.MinAmount, methodCfg.MaxAmount, methodCfg.Currency)
+	isTONWithdraw := strings.EqualFold(req.DstCode, "TON")
+	minMethodAmount := methodCfg.MinAmount
+	if isTONWithdraw {
+		if configuredMin := tonWithdrawConfig().MinWithdrawAmountUSD; configuredMin > 0 {
+			minMethodAmount = configuredMin
+		}
+	}
+	if req.Amount < minMethodAmount || req.Amount > methodCfg.MaxAmount {
+		return nil, fmt.Errorf("amount is out of range: %.0f - %.0f %s", minMethodAmount, methodCfg.MaxAmount, methodCfg.Currency)
 	}
 
 	balanceDeductionUSD := s.convertLocalAmountToUSD(req.Amount, req.Currency)
-	if balanceDeductionUSD < minWithdrawAmountUSD {
-		return nil, fmt.Errorf("minimum withdraw amount is %.0f USDT", minWithdrawAmountUSD)
+	minimumWithdrawUSD := minWithdrawAmountUSD
+	if isTONWithdraw && tonWithdrawConfig().MinWithdrawAmountUSD > 0 {
+		minimumWithdrawUSD = tonWithdrawConfig().MinWithdrawAmountUSD
+	}
+	if balanceDeductionUSD < minimumWithdrawUSD {
+		return nil, fmt.Errorf("minimum withdraw amount is %.0f USDT", minimumWithdrawUSD)
 	}
 
 	orderID := common.GenerateWithdrawOrderID(userID)
@@ -1436,38 +1456,44 @@ func (s *PaymentService) CreateWithdrawOrder(ctx context.Context, userID uint64,
 			return err
 		}
 
-		if user.TotalDeposit <= 0 {
+		requireConditions := !isTONWithdraw || tonWithdrawConfig().WithdrawConditionsEnabled
+		if requireConditions && user.TotalDeposit <= 0 {
 			return fmt.Errorf("withdraw requires matching deposit %.2f USDT", balanceDeductionUSD)
 		}
 
-		now := time.Now()
-		dayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-		dayEnd := dayStart.AddDate(0, 0, 1)
-		var todayWithdrawCount int64
-		if err := tx.Model(&dtos.WithdrawOrder{}).
-			Where("user_id = ? AND created_at >= ? AND created_at < ?", userID, dayStart, dayEnd).
-			Count(&todayWithdrawCount).Error; err != nil {
-			return err
-		}
-		if todayWithdrawCount >= dailyWithdrawLimit {
-			return fmt.Errorf("daily withdraw limit reached: %d times", dailyWithdrawLimit)
-		}
-
-		remainingWager, withdrawableBalance, err := GetActivityService().GetWithdrawWagerStatus(ctx, userID, user.Balance)
-		if err != nil {
-			return err
-		}
-		if balanceDeductionUSD > withdrawableBalance {
-			if remainingWager > 0 {
-				return fmt.Errorf("reward funds still require %.2f wager turnover before withdrawal", remainingWager)
+		if requireConditions {
+			now := time.Now()
+			dayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+			dayEnd := dayStart.AddDate(0, 0, 1)
+			var todayWithdrawCount int64
+			if err := tx.Model(&dtos.WithdrawOrder{}).
+				Where("user_id = ? AND created_at >= ? AND created_at < ?", userID, dayStart, dayEnd).
+				Count(&todayWithdrawCount).Error; err != nil {
+				return err
 			}
-			return errors.New("insufficient withdrawable balance")
+			if todayWithdrawCount >= dailyWithdrawLimit {
+				return fmt.Errorf("daily withdraw limit reached: %d times", dailyWithdrawLimit)
+			}
+
+			remainingWager, withdrawableBalance, err := GetActivityService().GetWithdrawWagerStatus(ctx, userID, user.Balance)
+			if err != nil {
+				return err
+			}
+			if balanceDeductionUSD > withdrawableBalance {
+				if remainingWager > 0 {
+					return fmt.Errorf("reward funds still require %.2f wager turnover before withdrawal", remainingWager)
+				}
+				return errors.New("insufficient withdrawable balance")
+			}
 		}
 
 		if user.Balance < balanceDeductionUSD {
 			return errors.New("insufficient balance")
 		}
-		autoSubmit = methodCfg.Channel != "manual" && shouldAutoSubmitWithdraw(balanceDeductionUSD)
+		// TON uses the server-owned hot wallet for automatic payouts. Other
+		// methods still require their configured gateway channel.
+		autoSubmit = shouldAutoSubmitWithdraw(balanceDeductionUSD) &&
+			(methodCfg.Channel != "manual" || strings.EqualFold(req.DstCode, "TON"))
 
 		updateResult := tx.Model(&user).
 			Where("balance >= ?", balanceDeductionUSD).
@@ -1557,6 +1583,14 @@ func (s *PaymentService) CreateWithdrawOrder(ctx context.Context, userID uint64,
 	if err := s.db.WithContext(ctx).Where("order_id = ?", orderID).First(&withdrawOrder).Error; err != nil {
 		return nil, err
 	}
+	if strings.EqualFold(withdrawOrder.DstCode, "TON") && withdrawOrder.Status == withdrawOrderStatusProcessing {
+		if err := s.processWithdrawSuccess(ctx, &withdrawOrder, platOrderID, 1, firstNonEmpty(refMsg, "TON payout confirmed"), time.Now()); err != nil {
+			return nil, err
+		}
+		if err := s.db.WithContext(ctx).Where("order_id = ?", orderID).First(&withdrawOrder).Error; err != nil {
+			return nil, err
+		}
+	}
 
 	return &withdrawOrder, nil
 }
@@ -1625,11 +1659,24 @@ func (s *PaymentService) ApproveWithdrawOrder(ctx context.Context, req dtos.Admi
 	if err := s.db.Where("order_id = ?", orderID).First(&order).Error; err != nil {
 		return nil, err
 	}
+	if strings.EqualFold(order.DstCode, "TON") && order.Status == withdrawOrderStatusProcessing {
+		if err := s.processWithdrawSuccess(ctx, &order, platOrderID, 1, firstNonEmpty(refMsg, "TON payout confirmed"), time.Now()); err != nil {
+			return nil, err
+		}
+		if err := s.db.Where("order_id = ?", orderID).First(&order).Error; err != nil {
+			return nil, err
+		}
+	}
 
 	return &order, nil
 }
 
 func (s *PaymentService) submitApprovedWithdrawToGateway(ctx context.Context, order *dtos.WithdrawOrder) (string, string, error) {
+	// TON orders must never fall through to legacy/Quantix gateways, regardless
+	// of the configured display type or channel.
+	if strings.EqualFold(strings.TrimSpace(order.DstCode), "TON") {
+		return s.submitTONWithdraw(ctx, order)
+	}
 	methodCfg, ok := s.findWithdrawMethod(order.DstCode)
 	if !ok {
 		return "", "", errors.New("unsupported withdraw method")
@@ -1643,7 +1690,6 @@ func (s *PaymentService) submitApprovedWithdrawToGateway(ctx context.Context, or
 	if strings.EqualFold(methodCfg.Channel, "quantixcore") {
 		return s.submitQuantixCoreWithdraw(ctx, order, methodCfg, currency)
 	}
-
 	return s.submitLegacyGatewayWithdraw(ctx, order)
 }
 

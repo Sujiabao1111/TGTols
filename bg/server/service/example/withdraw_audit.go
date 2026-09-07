@@ -154,6 +154,12 @@ func (withdrawAuditService *WithdrawAuditService) ApproveWithdrawOrder(ctx conte
 	}
 
 	var order withdrawOrderRow
+	// TON payouts are executed by the payment backend, which owns the hot
+	// wallet key. Do not run the legacy gateway flow from the admin service.
+	var tonOrder withdrawOrderRow
+	if err := global.GVA_DB.WithContext(ctx).Table("withdraw_orders").Where("order_id = ?", orderID).Take(&tonOrder).Error; err == nil && strings.EqualFold(strings.TrimSpace(tonOrder.DstCode), "TON") {
+		return approveTONViaPaymentBackend(ctx, orderID, reviewerID, reviewer, remark)
+	}
 	now := time.Now()
 	err := global.GVA_DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Table("withdraw_orders").
@@ -205,6 +211,39 @@ func (withdrawAuditService *WithdrawAuditService) ApproveWithdrawOrder(ctx conte
 			"ref_msg":       truncateWithdrawRefMsg(firstNonEmpty(refMsg, "submitted to gateway")),
 			"updated_at":    updateNow,
 		}).Error
+}
+
+func approveTONViaPaymentBackend(ctx context.Context, orderID string, reviewerID uint, reviewer, remark string) error {
+	cfg := global.GVA_CONFIG.CustomCfg
+	baseURL := strings.TrimRight(strings.TrimSpace(cfg.Commonsrv), "/")
+	if baseURL == "" {
+		return errors.New("payment backend URL is not configured")
+	}
+	body, _ := json.Marshal(map[string]interface{}{"order_id": orderID, "reviewer_id": reviewerID, "reviewer": reviewer, "remark": remark})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/withdraw/admin/approve", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if token := strings.TrimSpace(cfg.CommonsrvToken); token != "" {
+		req.Header.Set("X-Internal-Token", token)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("payment backend request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	data, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		var result map[string]interface{}
+		if json.Unmarshal(data, &result) == nil {
+			if msg, ok := result["error"].(string); ok && msg != "" {
+				return errors.New(msg)
+			}
+		}
+		return fmt.Errorf("payment backend returned HTTP %d", resp.StatusCode)
+	}
+	return nil
 }
 
 func (withdrawAuditService *WithdrawAuditService) RejectWithdrawOrder(ctx context.Context, orderID string, reviewerID uint, reviewer string, remark string) error {

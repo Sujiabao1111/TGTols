@@ -154,17 +154,17 @@ export function DepositForm({ selectedRegion, strictRegionOnly = false, onSucces
     }
 
     if (selectedMethod.code === "TON") {
+      toast({ title: "Use the TON wallet panel", description: "TON payments must be sent through TonConnect." })
+      return
+      /* Legacy deep-link flow intentionally disabled.
       setLoading(true)
       try {
-        const invoice = await paymentService.createTonOrder(numAmount)
-        const nano = invoice.nano_ton.toString()
-        const tonUrl = `ton://transfer/${encodeURIComponent(invoice.wallet_addr)}?amount=${nano}&text=${encodeURIComponent(invoice.comment)}`
-        window.location.href = tonUrl
         toast({ title: "TON order created", description: `${invoice.amount_ton.toFixed(4)} TON · ${invoice.comment}` })
         onSuccess?.()
       } catch (error: unknown) {
         toast({ title: "TON order failed", description: error instanceof Error ? error.message : t("common.error"), variant: "destructive" })
       } finally { setLoading(false) }
+      */
       return
     }
 

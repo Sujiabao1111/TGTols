@@ -130,9 +130,9 @@ func TestShouldAutoSubmitWithdraw(t *testing.T) {
 		amountUSD float64
 		want      bool
 	}{
-		{name: "below limit", amountUSD: 49.99, want: true},
-		{name: "equal to limit requires review", amountUSD: 50, want: false},
-		{name: "above limit requires review", amountUSD: 50.01, want: false},
+		{name: "below limit", amountUSD: 19.99, want: true},
+		{name: "equal to limit requires review", amountUSD: 20, want: false},
+		{name: "above limit requires review", amountUSD: 20.01, want: false},
 	}
 
 	for _, test := range tests {

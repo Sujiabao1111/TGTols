@@ -9,6 +9,7 @@
     "redisDb": 0,
     "agentid": "6942342fe37f068e3f56594e",
     "prefix": "plat",
+    "internal_token": "REPLACE_WITH_SHARED_INTERNAL_TOKEN",
     "agentapi": "https://api.nexapi.xyz/",
     "game_platforms": {
         "m7": {
@@ -60,6 +61,23 @@
             "webhook_secret": "TELEGRAM_WEBHOOK_SECRET_PLACEHOLDER",
             "stars_per_usd": 50,
             "enabled": false
+        },
+        "ton": {
+            "wallet_address": "TON_PAYOUT_WALLET_ADDRESS_PLACEHOLDER",
+            "mnemonic": "",
+            "network": "testnet",
+            "enabled": false,
+            "withdraw_conditions_enabled": true,
+            "min_withdraw_amount_usd": 10,
+            "test_mode": true,
+            "test_usd_per_ton": 500,
+            "usd_per_ton": 5,
+            "rate_url": "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd",
+            "rate_ttl_seconds": 60,
+            "api_url": "https://toncenter.com/api/v2/getTransactions",
+            "global_config_url": "https://ton-blockchain.github.io/global.config.json",
+            "wallet_version": "v5r1",
+            "api_key": "TON_API_KEY_PLACEHOLDER"
         }
     },
     "vocher": "https://www.188topup.com",

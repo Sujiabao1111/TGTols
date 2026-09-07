@@ -48,8 +48,8 @@ cors:
           expose-headers: Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Content-Type
           allow-credentials: true
 custom:
-    commonsrv: http://localhost:3556
-    commonsrv_token: change-me
+    commonsrv: http://127.0.0.1:13555
+    commonsrv_token: TGTols-BE-BG-2026-7f3a91c8d4e26b50a6c9
     payment:
         base_url: https://api-idn.transafe.co/
         merchant_id: "15700"

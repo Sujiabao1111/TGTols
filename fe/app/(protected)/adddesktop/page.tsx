@@ -1,8 +1,8 @@
 "use client"
 
-import AddDesktopPage from "@/components/AddDesktopPage"
+import { redirect } from "next/navigation"
 
 
 export default function AddDesktopRoute() {
-    return <AddDesktopPage />
+    redirect("/activity")
 }

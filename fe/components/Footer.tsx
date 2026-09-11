@@ -3,12 +3,15 @@
 import type React from "react"
 import { Facebook, Twitter, Instagram } from "lucide-react"
 import type { View } from "../app/mocks/types"
+import { useLanguage } from "../app/contexts/LanguageContext"
 
 interface FooterProps {
   onNavigate?: (view: View) => void
 }
 
 const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
+  const { t } = useLanguage()
+
   const handleClick = (e: React.MouseEvent, view: View) => {
     e.preventDefault()
     if (onNavigate) {
@@ -27,7 +30,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <span className="font-display font-bold text-xl text-white">PPNET</span>
             </div>
             <p className="text-gray-400 text-sm">
-              The premium destination for online entertainment. Licensed and regulated for fair play.
+              {t("footer.description")}
             </p>
             <div className="flex gap-4">
               <a
@@ -53,33 +56,33 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
 
           {/* Links */}
           <div>
-            <h4 className="font-bold text-white mb-4">Games</h4>
+            <h4 className="font-bold text-white mb-4">{t("footer.games")}</h4>
             <ul className="space-y-2 text-sm text-gray-400">
               <li>
                 <a href="#" className="hover:text-lucky-gold">
-                  Slots
+                  {t("footer.slots")}
                 </a>
               </li>
               <li>
                 <a href="#" className="hover:text-lucky-gold">
-                  Live Casino
+                  {t("footer.live_casino")}
                 </a>
               </li>
               <li>
                 <a href="#" className="hover:text-lucky-gold">
-                  Sportsbook
+                  {t("footer.sportsbook")}
                 </a>
               </li>
               <li>
                 <a href="#" className="hover:text-lucky-gold">
-                  Fishing
+                  {t("footer.fishing")}
                 </a>
               </li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-bold text-white mb-4">Support</h4>
+            <h4 className="font-bold text-white mb-4">{t("footer.support")}</h4>
             <ul className="space-y-2 text-sm text-gray-400">
               <li>
                 <a
@@ -87,7 +90,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   onClick={(e) => handleClick(e, "help-center")}
                   className="hover:text-lucky-gold cursor-pointer"
                 >
-                  Help Center
+                  {t("footer.help_center")}
                 </a>
               </li>
               <li>
@@ -96,7 +99,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   onClick={(e) => handleClick(e, "fairness-policy")}
                   className="hover:text-lucky-gold cursor-pointer"
                 >
-                  Fairness Policy
+                  {t("footer.fairness_policy")}
                 </a>
               </li>
               <li>
@@ -105,7 +108,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   onClick={(e) => handleClick(e, "privacy-policy")}
                   className="hover:text-lucky-gold cursor-pointer"
                 >
-                  Privacy Policy
+                  {t("footer.privacy_policy")}
                 </a>
               </li>
               <li>
@@ -114,7 +117,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   onClick={(e) => handleClick(e, "contact-us")}
                   className="hover:text-lucky-gold cursor-pointer"
                 >
-                  Contact Us
+                  {t("footer.contact_us")}
                 </a>
               </li>
             </ul>
@@ -122,14 +125,14 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
 
           {/* Payment Providers (Visual Only) */}
           <div>
-            <h4 className="font-bold text-white mb-4">Secure Payments</h4>
+            <h4 className="font-bold text-white mb-4">{t("footer.secure_payments")}</h4>
             <div className="grid grid-cols-3 gap-2">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div
                   key={i}
                   className="h-8 bg-white/5 rounded border border-white/10 flex items-center justify-center text-[10px] text-gray-500"
                 >
-                  PROVIDER
+                  {t("footer.provider")}
                 </div>
               ))}
             </div>
@@ -137,7 +140,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         </div>
 
         <div className="mt-12 pt-8 border-t border-white/5 text-center text-xs text-gray-600">
-          &copy; 2026 PPNET Games. All rights reserved. 18+ Only. Gamble Responsibly.
+          &copy; 2026 PPNET Games. {t("footer.copyright")}
         </div>
       </div>
     </footer>

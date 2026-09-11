@@ -11,9 +11,19 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-const DEFAULT_LANGUAGE: Language = "ru"
+const DEFAULT_LANGUAGE: Language = "en"
 const BROWSER_LANGUAGE_KEY = "language"
+const MANUAL_LANGUAGE_KEY = "language-manually-selected"
 const SUPPORTED_LANGUAGES: Language[] = ["en", "ru"]
+
+type TelegramWebApp = {
+  initData?: string
+  initDataUnsafe?: {
+    user?: {
+      language_code?: string
+    }
+  }
+}
 
 function normalizeLanguage(lang?: string | null): Language {
   if (lang === "ru") return "ru"
@@ -21,22 +31,35 @@ function normalizeLanguage(lang?: string | null): Language {
   return DEFAULT_LANGUAGE
 }
 
-function getBrowserLanguage(): Language {
-  if (typeof navigator === "undefined") {
-    return DEFAULT_LANGUAGE
+function getTelegramLanguage(): Language {
+  if (typeof window === "undefined") return DEFAULT_LANGUAGE
+
+  const webApp = (window as typeof window & {
+    Telegram?: { WebApp?: TelegramWebApp }
+  }).Telegram?.WebApp
+
+  let languageCode = webApp?.initDataUnsafe?.user?.language_code
+
+  if (!languageCode && webApp?.initData) {
+    try {
+      const user = JSON.parse(new URLSearchParams(webApp.initData).get("user") || "{}") as {
+        language_code?: string
+      }
+      languageCode = user.language_code
+    } catch {
+      languageCode = undefined
+    }
   }
 
-  const rawLang = navigator.languages?.[0] || navigator.language || DEFAULT_LANGUAGE
-  const normalizedLang = rawLang.toLowerCase().trim()
-
-  if (normalizedLang === "ru" || normalizedLang.startsWith("ru-")) return "ru"
-  return DEFAULT_LANGUAGE
+  return languageCode?.toLowerCase().trim().startsWith("ru") ? "ru" : "en"
 }
 
 function getStoredLanguage(): Language | null {
   if (typeof window === "undefined") {
     return null
   }
+
+  if (localStorage.getItem(MANUAL_LANGUAGE_KEY) !== "true") return null
 
   const storedLang = localStorage.getItem(BROWSER_LANGUAGE_KEY) as Language | null
   if (storedLang && SUPPORTED_LANGUAGES.includes(storedLang)) {
@@ -47,7 +70,7 @@ function getStoredLanguage(): Language | null {
 }
 
 function getInitialLanguage(): Language {
-  return getStoredLanguage() || getBrowserLanguage()
+  return getStoredLanguage() || getTelegramLanguage()
 }
 
 
@@ -55,7 +78,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(getInitialLanguage)
 
   const setLanguage = (lang: Language) => {
-    setLanguageState(normalizeLanguage(lang))
+    const normalizedLanguage = normalizeLanguage(lang)
+    localStorage.setItem(BROWSER_LANGUAGE_KEY, normalizedLanguage)
+    localStorage.setItem(MANUAL_LANGUAGE_KEY, "true")
+    setLanguageState(normalizedLanguage)
   }
 
   const t = useMemo(() => {
@@ -66,7 +92,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, [language])
 
   useEffect(() => {
-    localStorage.setItem(BROWSER_LANGUAGE_KEY, language)
     document.documentElement.lang = language
   }, [language])
 

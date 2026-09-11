@@ -49,6 +49,11 @@ function getManualInstallPlatform(): PwaManualInstallPlatform {
   return "unknown"
 }
 
+function isTelegramWebView() {
+  if (typeof window === "undefined") return false
+  return Boolean((window as typeof window & { Telegram?: { WebApp?: unknown } }).Telegram?.WebApp)
+}
+
 export function usePwaInstallPrompt() {
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null)
   const [isInstalled, setIsInstalled] = useState(false)
@@ -57,6 +62,7 @@ export function usePwaInstallPrompt() {
   const [lastOutcome, setLastOutcome] = useState<InstallOutcome | null>(null)
   const [showManualInstructions, setShowManualInstructions] = useState(false)
   const [manualInstallPlatform, setManualInstallPlatform] = useState<PwaManualInstallPlatform>("unknown")
+  const [isTelegram, setIsTelegram] = useState(false)
 
   useEffect(() => {
     const installPromptWindow = window as WindowWithInstallPrompt
@@ -82,6 +88,7 @@ export function usePwaInstallPrompt() {
       setPromptEvent(installPromptWindow.__pwaInstallPromptEvent ?? null)
       setManualInstallPlatform(getManualInstallPlatform())
       setShowManualInstructions(isIosDevice())
+      setIsTelegram(isTelegramWebView())
     })
 
     const handleBeforeInstallPrompt = (event: Event) => {
@@ -151,5 +158,6 @@ export function usePwaInstallPrompt() {
     lastOutcome,
     showManualInstructions,
     manualInstallPlatform,
+    isTelegram,
   }
 }

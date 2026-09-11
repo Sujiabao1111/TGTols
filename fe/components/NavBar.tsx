@@ -6,7 +6,6 @@ import type { View, Language } from "../app/mocks/types"
 import { useLanguage } from "../app/contexts/LanguageContext"
 import { useExchangeRate } from "@/hooks/useExchangeRate"
 import { useUser } from "@/app/contexts/UserContext"
-import { useAddDesktopStatus } from "@/hooks/useAddDesktopStatus"
 import { useNewUserRechargeStatus } from "@/hooks/useNewUserRechargeStatus"
 
 interface NavbarProps {
@@ -26,7 +25,6 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, isLoggedIn, us
   const { language, setLanguage, t } = useLanguage()
   const [isActivityOpen, setIsActivityOpen] = useState(true)  // Activity menu state
 
-  const { status: addDesktopStatus, loading: addDesktopStatusLoading } = useAddDesktopStatus(isLoggedIn)
   const { status: newUserRechargeStatus, loading: newUserRechargeLoading } = useNewUserRechargeStatus(isLoggedIn)
   const { formatUSD } = useExchangeRate()
   const { userProfile } = useUser()
@@ -100,7 +98,6 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, isLoggedIn, us
   ]
 
   const currentLangObj = languages.find((l) => l.code === language) || languages[0]
-  const showAddDesktopEntry = !isLoggedIn || addDesktopStatusLoading || !addDesktopStatus?.claimed
   const showNewUserRechargeEntry = !isLoggedIn || newUserRechargeLoading || !newUserRechargeStatus?.hidden
 
   // Hide Navbar completely on Login page if on mobile, or just simplify it
@@ -382,7 +379,6 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, isLoggedIn, us
                 {isActivityOpen && (
                   <div className="px-3 pb-2 space-y-1">
                     {[
-                      ...(showAddDesktopEntry ? [{ label: <span>{t("nav.adddesktop")}</span>, tag: 'HOT', tagColor: 'bg-red-500', view: 'adddesktop' as View }] : []),
                       ...(showNewUserRechargeEntry ? [{ label: <span>{t("nav.newUserRecharge")}</span>, tag: 'HOT', tagColor: 'bg-red-500', view: 'newUserRecharge' as View }] : []),
                       { label: <span>{t("nav.sevenDayTopup")}</span>, tag: 'HOT', tagColor: 'bg-red-500', view: 'sevenDayTopup' as View },
                       { label: <span>{t("nav.vip")}</span>, tag: 'HOT', tagColor: 'bg-red-500', view: 'vip' as View },

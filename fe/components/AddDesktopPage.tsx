@@ -16,6 +16,7 @@ const AddDesktopPage: React.FC = () => {
     lastOutcome,
     manualInstallPlatform,
     showManualInstructions,
+    isTelegram,
   } = usePwaInstallPrompt()
 
   const isIndonesian = language === "id"
@@ -33,7 +34,9 @@ const AddDesktopPage: React.FC = () => {
       ? t("pwa.install_button.installing")
       : t("pwa.install_banner.button")
   const manualInstructionKey =
-    manualInstallPlatform === "ios"
+    isTelegram
+      ? "pwa.manual.telegram"
+      : manualInstallPlatform === "ios"
       ? "pwa.manual.ios"
       : manualInstallPlatform === "android"
         ? "pwa.manual.android"

@@ -5,7 +5,7 @@ import Script from "next/script"
 import { openLiveChat } from "@/lib/live-chat"
 
 const liveChatScript = `window.__lc = window.__lc || {};
-window.__lc.license = 19891378;
+window.__lc.license = 19930645;
 window.__lc.integration_name = "manual_channels";
 window.__lc.product_name = "livechat";
 window.__lc.asyncInit = true;
@@ -28,9 +28,9 @@ export default function LiveChatWidget() {
         <MessageSquare size={28} strokeWidth={2.25} />
       </button>
 
-      
+
       <noscript>
-        <a href="https://www.livechat.com/chat-with/19891378/" rel="nofollow">
+        <a href="https://www.livechat.com/chat-with/19930645/" rel="nofollow">
           Chat with us
         </a>
         {", powered by "}

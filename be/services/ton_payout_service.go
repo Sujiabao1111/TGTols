@@ -122,7 +122,14 @@ func (s *PaymentService) submitTONWithdraw(ctx context.Context, order *dtos.With
 	if amountUSD <= 0 {
 		amountUSD = order.Amount
 	}
-	amountTON := withdrawGatewayAmount(amountUSD, "USD", s.getWithdrawFeeConfig(ctx)) / rate
+	// TON withdrawals charge a fixed 2 USD fee. The full requested amount
+	// remains recorded in the order so failed payouts can refund it in full.
+	const tonWithdrawFeeUSD = 2.0
+	netAmountUSD := amountUSD - tonWithdrawFeeUSD
+	if netAmountUSD <= 0 {
+		return "", "", errors.New("TON withdrawal amount must exceed the 2 USD fee")
+	}
+	amountTON := netAmountUSD / rate
 	payout, err := newTONPayoutService(ctx, cfg)
 	if err != nil {
 		return "", "", err

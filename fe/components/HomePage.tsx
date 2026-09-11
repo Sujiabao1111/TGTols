@@ -1017,7 +1017,7 @@ const HomePage: React.FC<HomePageProps> = ({
         {/* Empty State */}
         {!loading && !lobbyUrl && displayGames.length === 0 && activeGameType && (
           <div className="text-center py-12 text-gray-500">
-            <p>{searchQuery ? "No games found matching your search" : "No games available"}</p>
+            <p>{searchQuery ? t("msg.no_search_results") : t("msg.no_games_available")}</p>
           </div>
         )}
 

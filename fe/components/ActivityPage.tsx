@@ -5,7 +5,6 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { useLanguage } from '../app/contexts/LanguageContext'
-import { useAddDesktopStatus } from '../hooks/useAddDesktopStatus'
 import { useNewUserRechargeStatus } from '../hooks/useNewUserRechargeStatus'
 
 interface PromoNavigationCardConfig {
@@ -21,7 +20,6 @@ const ActivityPage: React.FC = () => {
   const { t, language } = useLanguage()
   const router = useRouter()
   const isIndonesian = language === 'id'
-  const { status: addDesktopActivityStatus, loading: loadingAddDesktop } = useAddDesktopStatus(true)
   const { status: newUserRechargeStatus, loading: loadingNewUserRecharge } = useNewUserRechargeStatus(true)
 
   const openActivityPage = (href: string) => {
@@ -75,18 +73,8 @@ const ActivityPage: React.FC = () => {
     )
   }
 
-  const showAddDesktopCard = loadingAddDesktop || !addDesktopActivityStatus?.claimed
   const showNewUserRechargeCard = loadingNewUserRecharge || !newUserRechargeStatus?.hidden
   const promoNavigationCards: PromoNavigationCardConfig[] = [
-    ...(showAddDesktopCard
-      ? [{
-        href: '/adddesktop',
-        image: isIndonesian ? '/images/activity6/act_addDesktop_yinni.png' : '/images/activity6/act_addDesktop_yingyu.png',
-        title: t('nav.adddesktop'),
-        tag: 'HOT',
-        loading: loadingAddDesktop,
-      }]
-      : []),
     ...(showNewUserRechargeCard
       ? [{
         href: '/newUserRecharge',

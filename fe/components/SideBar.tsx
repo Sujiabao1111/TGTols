@@ -14,7 +14,6 @@ import {
 } from "lucide-react"
 import { useLanguage } from "../app/contexts/LanguageContext"
 import type { View, Language, GameType } from "../app/mocks/types"
-import { useAddDesktopStatus } from "@/hooks/useAddDesktopStatus"
 import { useNewUserRechargeStatus } from "@/hooks/useNewUserRechargeStatus"
 
 interface SidebarProps {
@@ -45,7 +44,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [showLangDropdown, setShowLangDropdown] = useState(false)
   const { language, setLanguage, t } = useLanguage()
   const langDropdownRef = useRef<HTMLDivElement>(null)
-  const { status: addDesktopStatus, loading: addDesktopStatusLoading } = useAddDesktopStatus(isLoggedIn)
   const { status: newUserRechargeStatus, loading: newUserRechargeLoading } = useNewUserRechargeStatus(isLoggedIn)
 
   const toggleSidebar = () => {
@@ -91,14 +89,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     "newUserRecharge",
   ]
   const isActivityView = activityViews.includes(currentView)
-  const showAddDesktopEntry = !isLoggedIn || addDesktopStatusLoading || !addDesktopStatus?.claimed
   const showNewUserRechargeEntry = !isLoggedIn || newUserRechargeLoading || !newUserRechargeStatus?.hidden
   const bonusItems: Array<{
     label: string
     tag?: "HOT" | "NEW"
     view: View
   }> = [
-      ...(showAddDesktopEntry ? [{ label: t("nav.adddesktop"), tag: "HOT" as const, view: "adddesktop" as View }] : []),
       ...(showNewUserRechargeEntry ? [{ label: t("nav.newUserRecharge"), tag: "HOT" as const, view: "newUserRecharge" as View }] : []),
       { label: t("nav.sevenDayTopup"), tag: "HOT", view: "sevenDayTopup" },
       { label: t("nav.vip"), tag: "HOT", view: "vip" },
@@ -135,7 +131,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div className="space-y-1">
             <NavItem
               icon={Home}
-              label="Home"
+              label={t("sidebar.home")}
               active={currentView === "home" && !sortType && !activeFilter}
               onClick={() => {
                 onClearFilters?.()
@@ -157,7 +153,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 >
                   <div className="flex items-center gap-3">
                     <Gift size={20} />
-                    <span className="text-sm font-medium">Bonus</span>
+                    <span className="text-sm font-medium">{t("sidebar.bonus")}</span>
                   </div>
                   <ChevronDown
                     size={16}
@@ -193,7 +189,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             ) : (
               <NavItem
                 icon={Gift}
-                label="Bonus"
+                label={t("sidebar.bonus")}
                 active={isActivityView}
                 onClick={() => setIsBonusOpen((prev) => !prev)}
                 isExpanded={isExpanded}
@@ -208,7 +204,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex-shrink-0 border-t border-lucky-gold/20 bg-black/95 p-3 space-y-3">
           {/* Social Media */}
           <div>
-            <div className="text-xs text-gray-500 font-bold mb-2">SOCIAL</div>
+            <div className="text-xs text-gray-500 font-bold mb-2">{t("sidebar.social")}</div>
             <div className="flex gap-2">
               <SocialButton
                 icon="https://cdn.simpleicons.org/telegram/26A5E4"
@@ -230,7 +226,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Language Selector */}
           <div>
-            <div className="text-xs text-gray-500 font-bold mb-2">LANGUAGE</div>
+            <div className="text-xs text-gray-500 font-bold mb-2">{t("sidebar.language")}</div>
             <div className="relative group">
               <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white text-sm transition-colors">
                 <Globe size={16} />
@@ -256,7 +252,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           {/* Contact Support */}
           <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-lucky-gold/20 to-orange-500/20 border border-lucky-gold/30 hover:border-lucky-gold/60 text-white text-sm font-medium transition-colors">
             <MessageSquare size={16} />
-            <span>Contact Support</span>
+            <span>{t("sidebar.contact_support")}</span>
           </button>
         </div>
       ) : (
@@ -266,7 +262,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={() => setShowLangDropdown(!showLangDropdown)}
               className="w-full p-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white transition-colors flex items-center justify-center"
-              title="Language"
+              title={t("sidebar.language")}
             >
               <Globe size={20} />
             </button>
@@ -293,7 +289,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           {/* Contact Support - Icon Only */}
           <button
             className="w-full p-2.5 rounded-lg bg-gradient-to-r from-lucky-gold/20 to-orange-500/20 border border-lucky-gold/30 hover:border-lucky-gold/60 text-white transition-colors flex items-center justify-center"
-            title="Contact Support"
+            title={t("sidebar.contact_support")}
           >
             <MessageSquare size={20} />
           </button>

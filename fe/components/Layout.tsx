@@ -2,7 +2,6 @@
 
 import type React from "react"
 import Navbar from "./NavBar"
-import Footer from "./Footer"
 import MobileNav from "./MobileNav"
 import LiveChatWidget from "./LiveChatWidget"
 import Sidebar from "./SideBar"
@@ -54,6 +53,7 @@ const Layout: React.FC<LayoutProps> = ({
     isInstalled: isPwaInstalled,
     isInstalling: isPwaInstalling,
     ready: pwaInstallReady,
+    isTelegram,
   } = usePwaInstallPrompt()
   useEffect(() => {
     const dismissedDate = window.localStorage.getItem("install-banner-dismissed-date")
@@ -61,7 +61,7 @@ const Layout: React.FC<LayoutProps> = ({
     setIsInstallBannerDismissed(dismissedDate === today)
   }, [])
   const isInstallBannerVisible = useMemo(() => {
-    if (!pwaInstallReady || currentView === "login" || isInstallBannerDismissed || isPwaInstalled) {
+    if (!pwaInstallReady || isTelegram || currentView === "login" || isInstallBannerDismissed || isPwaInstalled) {
       return false
     }
 
@@ -82,6 +82,7 @@ const Layout: React.FC<LayoutProps> = ({
     isLoggedIn,
     isPwaInstalled,
     pwaInstallReady,
+    isTelegram,
   ])
 
   const hasActiveFilter: boolean = Boolean(sortType) || Boolean(externalGameType && externalGameType.code !== "SLOT")
@@ -132,7 +133,7 @@ const Layout: React.FC<LayoutProps> = ({
             onDismiss={handleDismissInstallBanner}
             onInstall={handleInstallDesktop}
             onOpenActivity={() => handleNavigate("adddesktop")}
-            visible={isInstallBannerVisible}
+            visible={false}
           />
 
           {/* Header / Navbar */}
@@ -183,13 +184,7 @@ const Layout: React.FC<LayoutProps> = ({
           {children}
         </main>
 
-        {/* Footer */}
-        {(currentView === "home" ||
-          currentView === "all-games" ||
-          currentView === "help-center" ||
-          currentView === "fairness-policy" ||
-          currentView === "privacy-policy" ||
-          currentView === "contact-us") && <Footer onNavigate={handleNavigate} />}
+        {/* Footer temporarily hidden per product request. Keep the component for future re-enable. */}
 
         {/* Mobile Bottom Navigation - Games use all available screen space. */}
         {currentView !== "login" && currentView !== "game" && (
